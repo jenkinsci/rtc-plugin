@@ -18,11 +18,13 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import java.io.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Date;
 
 /**
  * @author deluan
@@ -34,26 +36,32 @@ public class JazzSCM extends SCM {
 
     private String repositoryLocation;
     private String workspaceName;
+	private String workspaceName2;
     private String streamName;
     private String username;
     private Secret password;
-    private Boolean useTimeout;
-    private Long timeoutValue;
+	private static AbstractBuild build;
+
     private JazzRepositoryBrowser repositoryBrowser;
-    private String version;
 
     @DataBoundConstructor
     public JazzSCM(String repositoryLocation, String workspaceName, String streamName,
-                   String username, String password, Boolean useTimeout, Long timeoutValue) {
+                   String username, String password) {
 
         this.repositoryLocation = repositoryLocation;
         this.workspaceName = workspaceName;
         this.streamName = streamName;
         this.username = username;
         this.password = StringUtils.isEmpty(password) ? null : Secret.fromString(password);
-        this.useTimeout = useTimeout;
-        this.timeoutValue = timeoutValue;
     }
+	
+	//public String getDefaultWS() {
+	//	return defaultWS;
+	//}
+	
+	public static AbstractBuild getAbstractBuild() {
+		return build;
+	}
 
     public String getRepositoryLocation() {
         return repositoryLocation;
@@ -61,6 +69,10 @@ public class JazzSCM extends SCM {
 
     public String getWorkspaceName() {
         return workspaceName;
+    }
+	
+	public String getDefaultWorkspaceName() {
+        return StringUtils.defaultString(workspaceName, "${NODE_NAME}_${JOB_NAME}");
     }
 
     public String getStreamName() {
@@ -75,35 +87,9 @@ public class JazzSCM extends SCM {
         return Secret.toString(password);
     }
 
-    public Boolean getUseTimeout() {
-        return useTimeout;
-    }
-
-    public Long getTimeoutValue() {
-        return timeoutValue;
-    }
-
-    private String getVersion() {
-        if (this.version == null) {
-            try {
-                this.version = getDescriptor().retrieveScmVersion(getDescriptor().getJazzExecutable());
-                logger.info("Detected scm version: " + this.version);
-            } catch (Exception e) {
-                logger.severe("Could not instantiate a JazzClient!");
-            }
-
-            if (this.version == null) {
-                throw new RuntimeException("Could not determine scm version!");
-            }
-        }
-
-        return this.version;
-    }
-
     private JazzClient getClientInstance(Launcher launcher, TaskListener listener, FilePath jobWorkspace) {
-        JazzClient client = new JazzClient(getDescriptor().getJazzExecutable(), jobWorkspace, getConfiguration(), launcher, listener);
-        client.setVersion(getVersion());
-        return client;
+        return new JazzClient(launcher, listener, jobWorkspace, getDescriptor().getJazzExecutable(),
+                getConfiguration());
     }
 
     @Override
@@ -113,23 +99,64 @@ public class JazzSCM extends SCM {
 
     @Override
     protected PollingResult compareRemoteRevisionWith(AbstractProject<?, ?> project, Launcher launcher, FilePath workspace, TaskListener listener, SCMRevisionState baseline) throws IOException, InterruptedException {
-        JazzClient client = getClientInstance(launcher, listener, workspace);
-        try {
-            return (client.hasChanges()) ? PollingResult.SIGNIFICANT : PollingResult.NO_CHANGES;
-        } catch (Exception e) {
-            return PollingResult.NO_CHANGES;
-        }
-    }
+		PollingResult result;
 
+		AbstractBuild<?, ?> build = project.getSomeBuildWithWorkspace();
+		this.build = build;
+		if (build == null) {
+			listener.error("Build was null. Not sure what scenarios cause this.");
+			result = PollingResult.BUILD_NOW;
+		} else {
+			Node node = build.getBuiltOn();
+			String nodeName = node.getNodeName();
+			workspaceName2 = workspaceName.replace("${NODE_NAME}", nodeName);
+			workspaceName2 = workspaceName2.replace("${JOB_NAME}", build.getProject().getName());
+			//listener.error("compare remote rev");
+			try {
+				FileOutputStream fos = new FileOutputStream("N:\\temp\\RTCPluginLog.txt", true);
+				fos.write("compare remote rev\n".getBytes());
+				fos.flush();
+				fos.close();
+			} catch (Exception e) {
+			}
+			JazzClient client = getClientInstance(launcher, listener, workspace);
+			try {
+				//return PollingResult.SIGNIFICANT;
+				result = (client.hasChanges()) ? PollingResult.SIGNIFICANT : PollingResult.NO_CHANGES;
+			} catch (Exception e) {
+				result = PollingResult.NO_CHANGES;
+			}
+		}
+		return result;
+    }
+	
     @Override
     public boolean checkout(AbstractBuild<?, ?> build, Launcher launcher, FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
+		this.build = build;
+		Node node = build.getBuiltOn();
+        String nodeName = node.getNodeName();
+		workspaceName2 = workspaceName.replace("${NODE_NAME}", nodeName);
+		workspaceName2 = workspaceName2.replace("${JOB_NAME}", build.getProject().getName());
+		/*listener.error("workspaceName = " + workspaceName);
+		listener.error("nodeName = " + nodeName);
+		//listener.error("job name = " + build.getDisplayName());
+		listener.error("job name = " + build.getProject().getName());
+		listener.error("job f name = " + build.getProject().getFullName());
+		listener.error("job d name = " + build.getProject().getDisplayName());*/
+		
+		//listener.error("workspaceName = " + workspaceName);
+		
         JazzClient client = getClientInstance(launcher, listener, workspace);
+		
+		//check if workspace exists and if not than create it
+		boolean result = client.workspaceExists();
+		
+		if (result == false) {
+			client.createWorkspace();
+		}
 
-        // Forces a load of the workspace. If it's already loaded, the 'scm load' command will do nothing.
-        boolean loadOk = client.load();
-        if (!loadOk) {
-            return false;
-        }
+        // Forces a load of the workspace. If it's already loaded, the scm command will do nothing.
+        client.load();
 
         // Accepts all incoming changes
         List<JazzChangeSet> changes;
@@ -182,9 +209,7 @@ public class JazzSCM extends SCM {
         configuration.setPassword(Secret.toString(password));
         configuration.setRepositoryLocation(repositoryLocation);
         configuration.setStreamName(streamName);
-        configuration.setWorkspaceName(workspaceName);
-        configuration.setUseTimeout(useTimeout);
-        configuration.setTimeoutValue(timeoutValue != null ? timeoutValue : JazzConfiguration.DEFAULT_TIMEOUT);
+        configuration.setWorkspaceName(workspaceName2);
 
         return configuration;
     }
@@ -192,6 +217,8 @@ public class JazzSCM extends SCM {
     @Extension
     public static class DescriptorImpl extends SCMDescriptor<JazzSCM> {
         private String jazzExecutable;
+		private String defaultWS = "${NODE_NAME}_${JOB_NAME}";
+		private String RTCServerURL = "defaultURL";
 
         public DescriptorImpl() {
             super(JazzSCM.class, JazzRepositoryBrowser.class);
@@ -201,6 +228,10 @@ public class JazzSCM extends SCM {
         @Override
         public String getDisplayName() {
             return "RTC";
+        }
+		
+		public String getDefaultWS() {
+            return defaultWS;
         }
 
         @Override
@@ -217,6 +248,7 @@ public class JazzSCM extends SCM {
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
             jazzExecutable = Util.fixEmpty(req.getParameter("rtc.jazzExecutable").trim());
+			RTCServerURL = Util.fixEmpty(req.getParameter("rtc.RTCServerURL").trim());
             save();
             return true;
         }
@@ -228,38 +260,17 @@ public class JazzSCM extends SCM {
                 return jazzExecutable;
             }
         }
-
-        private String retrieveScmVersion(String exePath) throws IOException, InterruptedException {
-            JazzConfiguration configuration = new JazzConfiguration();
-            configuration.setUseTimeout(true);
-            configuration.setTimeoutValue(60L);
-            JazzClient client = new JazzClient(exePath, null, configuration);
-            return client.getVersion();
+		
+		public String getRTCServerURL() {
+            if (RTCServerURL == null) {
+                return "";
+            } else {
+                return RTCServerURL;
+            }
         }
 
         public FormValidation doExecutableCheck(@QueryParameter String value) {
-            return FormValidation.validateExecutable(value, new FormValidation.FileValidator() {
-                @Override
-                public FormValidation validate(File f) {
-                    String exePath = f.getAbsolutePath();
-                    try {
-                        String version = retrieveScmVersion(exePath);
-                        if (version != null) {
-                            return FormValidation.ok("Version " + version + " found");
-                        }
-                    } catch (Exception e) {
-                        logger.log(Level.WARNING, "Error validating executable '" + exePath + "'", e);
-                    }
-                    return FormValidation.error("Couldn't execute '" + exePath + " version' command");
-                }
-            });
-        }
-
-        public FormValidation doCheckTimeoutValue(@QueryParameter String value) {
-            if (StringUtils.isEmpty(value)) {
-                return FormValidation.ok();
-            }
-            return FormValidation.validatePositiveInteger(value);
+            return FormValidation.validateExecutable(value);
         }
     }
 }
