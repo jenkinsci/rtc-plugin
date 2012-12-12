@@ -33,5 +33,13 @@ public class VersionCommandTest extends BaseCommandTest {
         assertThat(result, is("2.0.2"));
     }
 
+    @Test
+    public void parse() throws Exception {
+    	BufferedReader reader = getReader("scm-version-3.1.100.txt");
+    	String result = cmd.parse(reader);
+
+    	assertThat(result, is("3.1.100"));
+    }
+
 
 }

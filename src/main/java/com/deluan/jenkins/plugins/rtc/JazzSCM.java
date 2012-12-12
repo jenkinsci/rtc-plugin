@@ -89,7 +89,7 @@ public class JazzSCM extends SCM {
                 this.version = getDescriptor().retrieveScmVersion(getDescriptor().getJazzExecutable());
                 logger.info("Detected scm version: " + this.version);
             } catch (Exception e) {
-                logger.severe("Could not instantiate a JazzClient!");
+            	logger.log(Level.SEVERE, "Could not instantiate a JazzClient!", e);
             }
 
             if (this.version == null) {

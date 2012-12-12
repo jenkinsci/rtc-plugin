@@ -27,7 +27,7 @@ public class VersionCommand extends AbstractCommand implements ParseableCommand<
     public String parse(BufferedReader reader) throws ParseException, IOException {
         String version = null;
         String line;
-        Pattern pattern = Pattern.compile(".*(\\d\\.\\d\\.\\d)\\..*");
+        Pattern pattern = Pattern.compile(".*(\\d+\\.\\d+\\.\\d+)\\..*");
         while ((line = reader.readLine()) != null) {
             Matcher matcher = pattern.matcher(line);
             if (matcher.matches()) {

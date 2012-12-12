@@ -1,0 +1,20 @@
+Build Id: RTC-I20120911-1740
+
+com.ibm.team.filesystem.cli.client, version 3.1.100.v20120817_2130
+  Subcommands: load login logout create create/workspace create/baseline create/changeset create/snapshot create/compon
+nt create/loadrules create/stream changeset changeset/comment changeset/complete changeset/current changeset/relocate c
+angeset/associate changeset/disassociate changeset/suspend changeset/resume changeset/discard changeset/extract changes
+t/locate change-target change-target/workspace change-target/component change-target/unset-workspace list list/workspac
+s list/projectareas list/teamareas list/streams list/components list/remotefiles list/credentials list/daemons list/sna
+shots list/locks list/properties list/changes list/users list/baselines list/changesets list/states checkin accept deli
+er status conflicts resolve move lastmod share discard undo compare history diff repair workspace workspace/change-targ
+t workspace/component workspace/unset workspace/add-components workspace/remove-components workspace/replace-components
+workspace/delete workspace/unload property property/list property/get property/set property/remove lock lock/list lock/
+cquire lock/release annotate snapshot snapshot/promote refresh users users/set delete delete/state-content changeaccess
+extract extract/file
+
+com.ibm.team.filesystem.cli.tools, version 3.1.100.v20120817_2130
+  Subcommands: tools.verify tools.validate tools.echo.stdin tools.configvalue tools.log
+
+com.ibm.team.filesystem.cli.core, version 3.1.100.v20120822_0505
+  Subcommands: help versionth Flex 3 [adobe.com/go/flex] and Spelling Plus Library for text highlighting [gskinner.com/products/spl].
