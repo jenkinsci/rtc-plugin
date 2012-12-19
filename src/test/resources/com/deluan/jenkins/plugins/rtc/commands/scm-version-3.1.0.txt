@@ -1,0 +1,10 @@
+Build Id: RTC-I20120612-0919
+
+com.ibm.team.filesystem.cli.core, version 3.1.0.v20120519_2357
+  Subcommands: help version daemon daemon/start daemon/stop daemon/deregister daemon/register
+
+com.ibm.team.filesystem.cli.client, version 3.1.0.v20120519_2357
+  Subcommands: load login logout create create/workspace create/baseline create/changeset create/snapshot create/component create/loadrules create/stream changeset changeset/comment changeset/complete changeset/current changeset/relocate changeset/associate changeset/disassociate changeset/suspend changeset/resume changeset/discard changeset/extract changeset/locate change-target change-target/workspace change-target/component change-target/unset-workspace list list/workspaces list/projectareas list/teamareas list/streams list/components list/remotefiles list/credentials list/daemons list/snapshots list/locks list/properties list/changes list/users list/baselines list/changesets list/states checkin accept deliver status conflicts resolve move lastmod share discard undo compare history diff repair workspace workspace/change-target workspace/component workspace/unset workspace/add-components workspace/remove-components workspace/replace-components workspace/delete workspace/unload property property/list property/get property/set property/remove lock lock/list lock/acquire lock/release annotate snapshot snapshot/promote refresh users users/set delete delete/state-content changeaccess extract extract/file
+
+com.ibm.team.filesystem.cli.tools, version 3.1.0.v20120510_0526
+  Subcommands: tools.verify tools.validate tools.echo.stdin tools.metronome tools.pkgtest tools.configvalue tools.log
