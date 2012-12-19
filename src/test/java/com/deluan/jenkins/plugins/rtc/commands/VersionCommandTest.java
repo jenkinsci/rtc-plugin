@@ -20,6 +20,13 @@ public class VersionCommandTest extends BaseCommandTest {
     }
 
     @Test
+    public void versionCommandParse_3_1_0() throws Exception {
+        BufferedReader reader = getReader("scm-version-3.1.0.txt");
+        String result = cmd.parse(reader);
+        assertThat(result, is("3.1.0"));
+    }
+
+    @Test
     public void versionCommandParse_2_1_0() throws Exception {
         BufferedReader reader = getReader("scm-version-2.1.0.txt");
         String result = cmd.parse(reader);
@@ -32,6 +39,4 @@ public class VersionCommandTest extends BaseCommandTest {
         String result = cmd.parse(reader);
         assertThat(result, is("2.0.2"));
     }
-
-
 }
