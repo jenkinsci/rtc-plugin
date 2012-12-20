@@ -1,0 +1,41 @@
+Repository: https://my-rtc.company.com:9443/path/
+Workspace: (1015) "thing-1.0-shared"
+  Component: (1000) "thing"
+    Change sets:
+      (1010) ---$ Boy Developer "fix Thinger to match new requirement" 12-Dec-2012 03:06 PM
+        Changes:
+          ---c- /thing/src/lib/MyThingAPI.C
+        Work items:
+          (1005) 8112 "Fix the thing"
+      (1009) ---$ Boy Developer "Girl removed the .jazzignore from conversion as no longer needed and we decided to just pick up the .project for future use" 12-Dec-2012 03:33 PM
+        Changes:
+          --d-- /thing/.jazzignore
+          --a-- /thing/.project
+        Work items:
+          (1005) 8112 "Fix the thing"
+      (1007) ---$  "Update Makefile to use $(MAKE) instead of make" 14-Dec-2012 04:48 PM
+        Changes:
+          ---c- /thing/Makefile
+        Work items:
+          (1005) 8112 "Fix the thing"
+      (1008) ---$ Girl Developer "omit bin directories for those without bin in platform preferences" 13-Dec-2012 10:19 AM
+        Changes:
+          --a-- /thing/.jazzignore
+          --a-- /thing/src/cfg/.jazzignore
+          --a-- /thing/src/lib/.jazzignore
+          --a-- /thing/src/MDS/.jazzignore
+          --a-- /thing/src/PIDS/.jazzignore
+          --a-- /thing/src/SVC/.jazzignore
+        Work items:
+          (1004) 8111 "A dummy workitem for 3.1.0 test case"
+          (1005) 8112 "Fix the thing"
+      (1006) ---$  "Remove CM Synergy .ccmwaid.inf" 14-Dec-2012 05:10 PM
+        Changes:
+          --d-- /thing/.ccmwaid.inf
+        Work items:
+          (1005) 8112 "Fix the thing"
+      (1004) ---$  "Add simple build.xml for testing RTC / Jenkins integration" 17-Dec-2012 05:36 PM
+        Changes:
+          --a-- /thing/build.xml
+        Work items:
+          (1005) 8112 "Fix the thing"
