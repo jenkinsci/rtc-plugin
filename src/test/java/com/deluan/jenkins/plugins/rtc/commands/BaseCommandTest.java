@@ -17,7 +17,8 @@ import static org.junit.Assert.assertNotNull;
  */
 abstract public class BaseCommandTest {
 
-    protected static final String[] TEST_REVISIONS = new String[]{"1714", "1657", "1652", "1651", "1650", "1648", "1645", "1640", "1625"};
+    protected static final String[] TEST_REVISIONS_2_1_0 = new String[]{"1714", "1657", "1652", "1651", "1650", "1648", "1645", "1640", "1625"};
+    protected static final String[] TEST_REVISIONS_3_1_0 = new String[]{"1010", "1009", "1007", "1008", "1006", "1004"};
     protected JazzConfiguration config;
 
     @Before

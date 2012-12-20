@@ -38,15 +38,15 @@ public class CommandTest extends BaseCommandTest {
 
     @Test
     public void listCommandArguments() throws Exception {
-        ListCommand cmd = new ListCommand(config, Arrays.asList(TEST_REVISIONS));
+        ListCommand cmd = new ListCommand(config, Arrays.asList(TEST_REVISIONS_2_1_0));
 
         assertEquals("list changesets -u user -P password -d c:\\test 1714 1657 1652 1651 1650 1648 1645 1640 1625", cmd.getArguments().toStringWithQuote());
     }
 
     @Test
     public void listCommandParse() throws Exception {
-        ListCommand cmd = new ListCommand(config, Arrays.asList(TEST_REVISIONS));
-        Map<String, JazzChangeSet> result = callParser(cmd, "scm-list.txt", TEST_REVISIONS);
+        ListCommand cmd = new ListCommand(config, Arrays.asList(TEST_REVISIONS_2_1_0));
+        Map<String, JazzChangeSet> result = callParser(cmd, "scm-list.txt", TEST_REVISIONS_2_1_0);
 
         JazzChangeSet changeSet = result.get("1714");
         assertEquals("The number of files in the changesets was incorrect", 8, changeSet.getAffectedPaths().size());
