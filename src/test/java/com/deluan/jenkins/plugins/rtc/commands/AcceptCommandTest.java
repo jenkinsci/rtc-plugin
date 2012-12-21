@@ -5,6 +5,7 @@ import hudson.scm.EditType;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
@@ -36,6 +37,37 @@ public class AcceptCommandTest extends BaseCommandTest {
     public void createCommandForVersion_3_0_0() throws Exception {
         AcceptCommand cmd = new AcceptCommand(config, Arrays.asList(TEST_REVISIONS_2_1_0), "3.0.0");
         assertThat(cmd.oldFormat, is(false));
+    }
+
+    @Test
+    public void acceptCommandParseJson_3_1_0() throws Exception {
+        AcceptCommand cmd = new AcceptCommand(config, Arrays.asList(TEST_REVISIONS_3_1_0), "3.1.0-json");
+        Map<String, JazzChangeSet> result = callParser(cmd, "scm-accept-json-3.1.0.txt", TEST_REVISIONS_3_1_0_JSON);
+
+        HashMap hashMap = new HashMap();
+        hashMap.put("1008", "_d2oMcUU4EeKJGJt6NdfIqg");
+        hashMap.put("1010", "_etjOekOlEeKJEZt6NdfIqg");
+        hashMap.put("1009", "_K4DX40SbEeKJFZt6NdfIqg");
+
+        JazzChangeSet changeSet = result.get(hashMap.get("1008"));
+        assertEquals("The number of files in the changesets was incorrect", 6, changeSet.getAffectedPaths().size());
+        assertEquals("The number of work items in the changesets was incorrect", 2, changeSet.getWorkItems().size());
+
+        JazzChangeSet.Item item = changeSet.getItems().get(3);
+        assertTrue("The file is not the expected one", item.getPath().endsWith(".jazzignore"));
+        assertEquals("The edit type is not the expected one", EditType.ADD, item.getEditType());
+
+
+        changeSet = result.get(hashMap.get("1010"));
+        item = changeSet.getItems().get(0);
+        assertTrue("The file is not the expected one", item.getPath().endsWith("MyThingAPI.C"));
+        assertEquals("The edit type is not the expected one", EditType.EDIT, item.getEditType());
+
+
+        changeSet = result.get(hashMap.get("1009"));
+        item = changeSet.getItems().get(0);
+        assertTrue("The file is not the expected one", item.getPath().endsWith(".jazzignore"));
+        assertEquals("The edit type is not the expected one", EditType.DELETE, item.getEditType());
     }
 
     @Test

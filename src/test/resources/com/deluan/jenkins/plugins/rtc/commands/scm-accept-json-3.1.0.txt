@@ -223,6 +223,11 @@
                                     "uuid": "_d2oMcUU4EeKJGJt6NdfIqg",
                                     "workitems": [
                                         {
+                                            "id": 8111,
+                                            "uuid": "_MXLPLTXhEeKdbuKS2aCWjw",
+                                            "workitem-label": "A dummy workitem for 3.1.0 test case"
+                                        },
+                                        {
                                             "id": 8112,
                                             "uuid": "_PTlXoEOhEeKdbuKS2aCWjw",
                                             "workitem-label": "Fix the thing"
