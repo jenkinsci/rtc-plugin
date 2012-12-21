@@ -18,7 +18,7 @@ public class CompareCommandTest extends BaseCommandTest {
 
     @Test
     public void compareCommandParse() throws Exception {
-        Map<String, JazzChangeSet> result = callParser(new CompareCommand(config), "scm-compare.txt", TEST_REVISIONS);
+        Map<String, JazzChangeSet> result = callParser(new CompareCommand(config), "scm-compare.txt", TEST_REVISIONS_2_1_0);
 
         JazzChangeSet changeSet = result.get("1657");
         assertEquals("Roberto", changeSet.getUser());

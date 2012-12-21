@@ -1,0 +1,322 @@
+{
+    "repos": [
+        {
+            "repo-url": "https:\/\/my-rtc.company.com:9443\/path\/",
+            "workspaces": [
+                {
+                    "components": [
+                        {
+                            "changes": [
+                                {
+                                    "author": "Boy Developer",
+                                    "changes": [
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/src\/lib\/MyThingAPI.C",
+                                            "state": {
+                                                "add": false,
+                                                "conflict": false,
+                                                "content_change": true,
+                                                "delete": false,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        }
+                                    ],
+                                    "comment": "fix Thinger to match new requirement",
+                                    "modified": "12-Dec-2012 03:06 PM",
+                                    "state": {
+                                        "active": false,
+                                        "complete": true,
+                                        "conflict": false,
+                                        "current": false,
+                                        "potential_conflict": false
+                                    },
+                                    "url": "https:\/\/my-rtc.company.com:9443\/path\/",
+                                    "uuid": "_etjOekOlEeKJEZt6NdfIqg",
+                                    "workitems": [
+                                        {
+                                            "id": 8112,
+                                            "uuid": "_PTlXoEOhEeKdbuKS2aCWjw",
+                                            "workitem-label": "Fix the thing"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "author": "Boy Developer",
+                                    "changes": [
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/.jazzignore",
+                                            "state": {
+                                                "add": false,
+                                                "conflict": false,
+                                                "content_change": false,
+                                                "delete": true,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        },
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/.project",
+                                            "state": {
+                                                "add": true,
+                                                "conflict": false,
+                                                "content_change": false,
+                                                "delete": false,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        }
+                                    ],
+                                    "comment": "Girl removed the .jazzignore from conversion as no longer needed and we decided to just pick up the .project for future use",
+                                    "modified": "12-Dec-2012 03:33 PM",
+                                    "state": {
+                                        "active": false,
+                                        "complete": true,
+                                        "conflict": false,
+                                        "current": false,
+                                        "potential_conflict": false
+                                    },
+                                    "url": "https:\/\/my-rtc.company.com:9443\/path\/",
+                                    "uuid": "_K4DX40SbEeKJFZt6NdfIqg",
+                                    "workitems": [
+                                        {
+                                            "id": 8112,
+                                            "uuid": "_PTlXoEOhEeKdbuKS2aCWjw",
+                                            "workitem-label": "Fix the thing"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "author": "",
+                                    "changes": [
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/Makefile",
+                                            "state": {
+                                                "add": false,
+                                                "conflict": false,
+                                                "content_change": true,
+                                                "delete": false,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        }
+                                    ],
+                                    "comment": "Update Makefile to use $(MAKE) instead of make",
+                                    "modified": "14-Dec-2012 04:48 PM",
+                                    "state": {
+                                        "active": false,
+                                        "complete": true,
+                                        "conflict": false,
+                                        "current": false,
+                                        "potential_conflict": false
+                                    },
+                                    "url": "https:\/\/my-rtc.company.com:9443\/path\/",
+                                    "uuid": "_r_6ZYUY3EeKJIJt6NdfIqg",
+                                    "workitems": [
+                                        {
+                                            "id": 8112,
+                                            "uuid": "_PTlXoEOhEeKdbuKS2aCWjw",
+                                            "workitem-label": "Fix the thing"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "author": "Girl Developer",
+                                    "changes": [
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/.jazzignore",
+                                            "state": {
+                                                "add": true,
+                                                "conflict": false,
+                                                "content_change": false,
+                                                "delete": false,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        },
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/src\/cfg\/.jazzignore",
+                                            "state": {
+                                                "add": true,
+                                                "conflict": false,
+                                                "content_change": false,
+                                                "delete": false,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        },
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/src\/lib\/.jazzignore",
+                                            "state": {
+                                                "add": true,
+                                                "conflict": false,
+                                                "content_change": false,
+                                                "delete": false,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        },
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/src\/MDS\/.jazzignore",
+                                            "state": {
+                                                "add": true,
+                                                "conflict": false,
+                                                "content_change": false,
+                                                "delete": false,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        },
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/src\/PIDS\/.jazzignore",
+                                            "state": {
+                                                "add": true,
+                                                "conflict": false,
+                                                "content_change": false,
+                                                "delete": false,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        },
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/src\/SVC\/.jazzignore",
+                                            "state": {
+                                                "add": true,
+                                                "conflict": false,
+                                                "content_change": false,
+                                                "delete": false,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        }
+                                    ],
+                                    "comment": "omit bin directories for those without bin in platform preferences",
+                                    "modified": "13-Dec-2012 10:19 AM",
+                                    "state": {
+                                        "active": false,
+                                        "complete": true,
+                                        "conflict": false,
+                                        "current": false,
+                                        "potential_conflict": false
+                                    },
+                                    "url": "https:\/\/my-rtc.company.com:9443\/path\/",
+                                    "uuid": "_d2oMcUU4EeKJGJt6NdfIqg",
+                                    "workitems": [
+                                        {
+                                            "id": 8111,
+                                            "uuid": "_MXLPLTXhEeKdbuKS2aCWjw",
+                                            "workitem-label": "A dummy workitem for 3.1.0 test case"
+                                        },
+                                        {
+                                            "id": 8112,
+                                            "uuid": "_PTlXoEOhEeKdbuKS2aCWjw",
+                                            "workitem-label": "Fix the thing"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "author": "",
+                                    "changes": [
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/.ccmwaid.inf",
+                                            "state": {
+                                                "add": false,
+                                                "conflict": false,
+                                                "content_change": false,
+                                                "delete": true,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        }
+                                    ],
+                                    "comment": "Remove CM Synergy .ccmwaid.inf",
+                                    "modified": "14-Dec-2012 05:10 PM",
+                                    "state": {
+                                        "active": false,
+                                        "complete": true,
+                                        "conflict": false,
+                                        "current": false,
+                                        "potential_conflict": false
+                                    },
+                                    "url": "https:\/\/my-rtc.company.com:9443\/path\/",
+                                    "uuid": "_F9ue60Y7EeKJIJt6NdfIqg",
+                                    "workitems": [
+                                        {
+                                            "id": 8112,
+                                            "uuid": "_PTlXoEOhEeKdbuKS2aCWjw",
+                                            "workitem-label": "Fix the thing"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "author": "",
+                                    "changes": [
+                                        {
+                                            "inaccessible-change": false,
+                                            "path": "\/thing\/build.xml",
+                                            "state": {
+                                                "add": true,
+                                                "conflict": false,
+                                                "content_change": false,
+                                                "delete": false,
+                                                "move": false,
+                                                "potential_conflict": false,
+                                                "property_change": false
+                                            }
+                                        }
+                                    ],
+                                    "comment": "Add simple build.xml for testing RTC \/ Jenkins integration",
+                                    "modified": "17-Dec-2012 05:36 PM",
+                                    "state": {
+                                        "active": false,
+                                        "complete": true,
+                                        "conflict": false,
+                                        "current": false,
+                                        "potential_conflict": false
+                                    },
+                                    "url": "https:\/\/my-rtc.company.com:9443\/path\/",
+                                    "uuid": "_RBKcUUiaEeKJLpt6NdfIqg",
+                                    "workitems": [
+                                        {
+                                            "id": 8112,
+                                            "uuid": "_PTlXoEOhEeKdbuKS2aCWjw",
+                                            "workitem-label": "Fix the thing"
+                                        }
+                                    ]
+                                }
+                            ],
+                            "name": "thing",
+                            "url": "https:\/\/my-rtc.company.com:9443\/path\/",
+                            "uuid": "_dl2BQzf5EeK96-QDKUBbtg"
+                        }
+                    ],
+                    "name": "thing-1.0-shared",
+                    "url": "https:\/\/my-rtc.company.com:9443\/path\/",
+                    "uuid": "_GDPO0EidEeKJLpt6NdfIqg"
+                }
+            ]
+        }
+    ]
+}

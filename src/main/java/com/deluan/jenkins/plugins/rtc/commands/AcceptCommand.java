@@ -2,9 +2,7 @@ package com.deluan.jenkins.plugins.rtc.commands;
 
 import com.deluan.jenkins.plugins.rtc.JazzConfiguration;
 import com.deluan.jenkins.plugins.rtc.changelog.JazzChangeSet;
-import com.deluan.jenkins.plugins.rtc.commands.accept.AcceptNewOutputParser;
-import com.deluan.jenkins.plugins.rtc.commands.accept.AcceptOldOutputParser;
-import com.deluan.jenkins.plugins.rtc.commands.accept.BaseAcceptOutputParser;
+import com.deluan.jenkins.plugins.rtc.commands.accept.*;
 import hudson.util.ArgumentListBuilder;
 
 import java.io.BufferedReader;
@@ -19,16 +17,24 @@ import java.util.Map;
  */
 public class AcceptCommand extends AbstractCommand implements ParseableCommand<Map<String, JazzChangeSet>> {
 
-    public static final String NEW_FORMAT_VERSION = "2.1.0";
+    public static final String FORMAT_VERSION_2_1_0 = "2.1.0";
+    public static final String FORMAT_VERSION_3_1_0 = "3.1.0";
     private Collection<String> changeSets;
+    private boolean useJson;
     private BaseAcceptOutputParser parser;
     protected boolean oldFormat = false;
 
     public AcceptCommand(JazzConfiguration configurationProvider, Collection<String> changeSets, String version) {
         super(configurationProvider);
         this.changeSets = new LinkedHashSet<String>(changeSets);
-        this.oldFormat = (version.compareTo(NEW_FORMAT_VERSION) < 0);
-        parser = (oldFormat) ? new AcceptOldOutputParser() : new AcceptNewOutputParser();
+        this.useJson = version.equals("3.1.0-json"); // TODO: Obviously only for testing.
+
+        if (version.compareTo(FORMAT_VERSION_3_1_0) >= 0) {
+            parser = useJson ? new JsonAcceptOutputParser() : new AcceptOutputParser_3_1_0();
+        } else {
+            this.oldFormat = (version.compareTo(FORMAT_VERSION_2_1_0) < 0);
+            parser = (oldFormat) ? new AcceptOldOutputParser() : new AcceptNewOutputParser();
+        }
     }
 
     public ArgumentListBuilder getArguments() {
@@ -39,6 +45,8 @@ public class AcceptCommand extends AbstractCommand implements ParseableCommand<M
         addLocalWorkspaceArgument(args);
         addSourceStream(args);
         args.add("--flow-components", "-o", "-v");
+        if (useJson) args.add("--json");
+
         if (hasAnyChangeSets()) {
             addChangeSets(args);
         }
