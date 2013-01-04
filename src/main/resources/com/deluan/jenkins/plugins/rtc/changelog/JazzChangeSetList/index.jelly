@@ -40,7 +40,7 @@
             </j:forEach>
             <tr>
                 <td colspan="2" class="changeset">
-                    <b>${%Related Work Itens}</b>
+                    <b>${%Related Work Items}</b>
                 </td>
             </tr>
             <j:forEach var="item" items="${cs.workItems}">
