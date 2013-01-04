@@ -39,7 +39,11 @@ public class JazzRepositoryBrowser extends RepositoryBrowser<JazzChangeSet> {
     // ${repositoryUrl}/resource/itemName/com.ibm.team.workitem.WorkItem/${alias}
     public URL getWorkItemLink(JazzChangeSet changeSet, String workItem) throws IOException {
         String[] parts = workItem.split(" ");
-        String url = getBaseUrlString(changeSet) + "/resource/itemName/com.ibm.team.workitem.WorkItem/" + parts[0];
+        String baseUrl = getBaseUrlString(changeSet);
+        if(baseUrl.endsWith("/")) {
+        	baseUrl = baseUrl.substring(0, baseUrl.length() -1);
+        }
+        String url = baseUrl + "/resource/itemName/com.ibm.team.workitem.WorkItem/" + parts[0];
         return new URL(url);
     }
 
