@@ -60,8 +60,8 @@ public class JazzChangeLogReaderTest {
         assertThat("User is incorrect", readChangeSet.getUser(), is(originalChangeSet.getUser()));
         assertThat("Email is incorrect", readChangeSet.getEmail(), is(originalChangeSet.getEmail()));
         assertThat("Comment is incorrect", readChangeSet.getMsg(), is(originalChangeSet.getMsg()));
-        assertThat("Number of itens in changeset is incorrect", readChangeSet.getItems().size(), is(2));
-        assertThat("Number of work itens in changeset is incorrect", readChangeSet.getWorkItems().size(), is(1));
+        assertThat("Number of items in changeset is incorrect", readChangeSet.getItems().size(), is(2));
+        assertThat("Number of work items in changeset is incorrect", readChangeSet.getWorkItems().size(), is(1));
 
         JazzChangeSet.Item item = readChangeSet.getItems().get(0);
         assertThat("Action is incorrect", item.getAction(), is("delete"));

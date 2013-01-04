@@ -50,7 +50,7 @@ public class CommandTest extends BaseCommandTest {
 
         JazzChangeSet changeSet = result.get("1714");
         assertEquals("The number of files in the changesets was incorrect", 8, changeSet.getAffectedPaths().size());
-        assertEquals("The number of work itens in the changesets was incorrect", 2, changeSet.getWorkItems().size());
+        assertEquals("The number of work items in the changesets was incorrect", 2, changeSet.getWorkItems().size());
 
         JazzChangeSet.Item item = changeSet.getItems().get(0);
         assertTrue("The file is not the expected one", item.getPath().endsWith("GerenteOferta.java"));

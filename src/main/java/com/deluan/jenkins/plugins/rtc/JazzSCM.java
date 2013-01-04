@@ -136,6 +136,7 @@ public class JazzSCM extends SCM {
         try {
             changes = client.accept();
         } catch (IOException e) {
+        	logger.log(Level.WARNING, "Error accepting...", e);
             return false;
         }
 

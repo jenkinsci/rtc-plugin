@@ -154,11 +154,12 @@ public class JazzClient {
     /**
      * Call <tt>scm accept</tt> command.<p/>
      *
-     * @return all changeSets accepted, complete with affected paths and related work itens
+     * @return all changeSets accepted, complete with affected paths and related work items
      * @throws IOException
      * @throws InterruptedException
      */
     public List<JazzChangeSet> accept() throws IOException, InterruptedException {
+    	logger.fine("accept()");
         Map<String, JazzChangeSet> compareCmdResults = compare();
 
         if (!compareCmdResults.isEmpty()) {
@@ -174,6 +175,7 @@ public class JazzClient {
             }
         }
 
+    	logger.fine("accept() end");
         return new ArrayList<JazzChangeSet>(compareCmdResults.values());
     }
 
@@ -195,6 +197,7 @@ public class JazzClient {
         try {
             result = cmd.parse(in);
         } catch (Exception e) {
+        	logger.log(Level.SEVERE, "Error parsing command!", e);
             throw new IOException(e);
         } finally {
             in.close();
