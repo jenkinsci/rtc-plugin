@@ -6,5 +6,20 @@
             <f:textbox name="rtc.jazzExecutable" value="${descriptor.jazzExecutable}"
                        checkUrl="'${rootURL}/scm/JazzSCM/executableCheck?value='+escape(this.value)"/>
         </f:entry>
+		<f:entry title="RTC Server URL">
+            <f:textbox name="rtc.RTCServerURL" value="${descriptor.RTCServerURL}"/>
+        </f:entry>
+		<f:entry title="RTC User Name">
+			<f:textbox name="rtc.RTCUserName" value="${descriptor.RTCUserName}"/>
+        </f:entry>
+		<f:entry title="RTC Password">
+			<f:password name="rtc.RTCPassword" value="${descriptor.RTCPassword}"/>
+        </f:entry>
+		<!--<f:entry>
+			<f:password field="RTC password" value="${descriptor.RTCPassword}"/>
+		</f:entry>-->
+		<!--<f:entry title="${%Build user's password}" field="password" value="${descriptor.RTCPassword}">
+			<f:password/>
+		</f:entry>-->
     </f:section>
 </j:jelly>

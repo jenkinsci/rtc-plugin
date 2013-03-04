@@ -6,22 +6,21 @@ import hudson.AbortException;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Launcher.ProcStarter;
+import hudson.Proc;
 import hudson.model.Computer;
 import hudson.model.TaskListener;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.ForkOutputStream;
-import hudson.util.LogTaskListener;
+import hudson.model.*;
+import hudson.util.*;
 import org.kohsuke.stapler.framework.io.WriterOutputStream;
 
 import java.io.*;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Encapsulates the invocation of RTC's SCM Command Line Interface, "scm".
@@ -29,64 +28,155 @@ import java.util.logging.Logger;
  * @author deluan
  */
 @SuppressWarnings("JavaDoc")
-public class JazzClient {
+/****************************************************
+
+	public class JazzClient 
+	
+****************************************************/
+public class JazzClient 
+{
     public static final String SCM_CMD = "scm";
 
-    private static final Logger logger = Logger.getLogger(JazzClient.class.getName());
+    private static final int TIMEOUT = 60 * 60; // in seconds
 
     private JazzConfiguration configuration = new JazzConfiguration();
     private final Launcher launcher;
     private final TaskListener listener;
     private String jazzExecutable;
-    private String version;
 
-    public JazzClient(String jazzExecutable, FilePath jobWorkspace,
-                      JazzConfiguration configuration) throws IOException, InterruptedException {
-        FilePath executable = new FilePath(new File(jazzExecutable));
-        this.listener = new LogTaskListener(logger, Level.FINEST);
-        this.launcher = executable.createLauncher(listener);
-        this.jazzExecutable = jazzExecutable;
-        this.configuration = new JazzConfiguration(configuration);
-        this.configuration.setJobWorkspace(jobWorkspace);
-    }
-
-    public JazzClient(String jazzExecutable, FilePath jobWorkspace, JazzConfiguration configuration, Launcher launcher, TaskListener listener) {
+	/****************************************************
+	
+		public JazzClient(Launcher launcher, TaskListener listener, FilePath jobWorkspace, String jazzExecutable,
+                      JazzConfiguration configuration)
+		
+	****************************************************/
+    public JazzClient(Launcher launcher, TaskListener listener, FilePath jobWorkspace, String jazzExecutable,
+                      JazzConfiguration configuration) {
         this.jazzExecutable = jazzExecutable;
         this.launcher = launcher;
         this.listener = listener;
-        this.configuration = new JazzConfiguration(configuration);
+        this.configuration = configuration.clone();
         this.configuration.setJobWorkspace(jobWorkspace);
+        this.configuration.setTaskListener(listener);
+        
     }
 
-    /**
+	/****************************************************
+	
+		public boolean hasChanges() throws IOException, InterruptedException {
+		
      * Returns true if there is any incoming changes to be accepted.
      *
      * @return <tt>true</tt> if any changes are found
      * @throws IOException
      * @throws InterruptedException
-     */
+	****************************************************/
     public boolean hasChanges() throws IOException, InterruptedException {
         Map<String, JazzChangeSet> changes = compare();
-
+		
+		PrintStream output = listener.getLogger();
+    	output.println(changes.values().size() + " change sets.");
+		
         return !changes.isEmpty();
     }
 
-    /**
-     * Call <tt>scm load</tt> command. <p/>
-     * <p/>
+	/****************************************************
+     public boolean load() throws IOException, InterruptedException {
+     
      * Will load the workspace using the parameters defined.
      *
      * @return <tt>true</tt> on success
      * @throws IOException
      * @throws InterruptedException
-     */
+	****************************************************/
     public boolean load() throws IOException, InterruptedException {
-        Command cmd = new LoadCommand(configuration);
+		//output to console.
+		PrintStream output = listener.getLogger();
+    	output.println("  RTC SCM - Jazz Client: Loading Workspace.");
+    	
+        Command cmd = new LoadCommand(configuration, listener, jazzExecutable);
 
-        return (joinWithPossibleTimeout(run(cmd.getArguments())) == 0);
+        return joinWithPossibleTimeout(run(cmd.getArguments(), null), true, listener, null) == 0;
+    }
+	
+	/****************************************************
+	
+		public boolean workspaceExists() throws IOException, InterruptedException {
+		
+     * Call <tt>scm history</tt> command. <p/>
+     * <p/>
+     * Will check if the workspace exists.
+     *
+     * @return <tt>true</tt> on exists
+     * @throws IOException
+     * @throws InterruptedException
+	****************************************************/
+    public boolean workspaceExists(AbstractBuild build) throws IOException, InterruptedException {
+		//output to console.
+		PrintStream output = listener.getLogger();
+        Command cmd = new HistoryCommand(configuration);
+        output.println("  RTC SCM - Jazz Client: Run History command to determine if workspace exists - it is OK if an error is returned below: (Problem running 'history')");
+				
+		//Get variables from system.
+		String jobName = "";
+		
+		try {
+	        jobName = build.getEnvironment(null).get("JOB_NAME");
+		} catch (Exception e) {
+			listener.error("" + e);
+		}
+		// Add the abstract build to the configuration.		
+		// This call happens before the load and accept so we can set these items for later use.
+		configuration.setBuild(build);
+		configuration.setTaskListener(listener);
+		configuration.setJobName(jobName);
+		configuration.consoleOut("    -- Initializing build object --");
+						        
+		StringBuffer strBuf = new StringBuffer();
+		joinWithPossibleTimeout(run(cmd.getArguments()), true, listener, strBuf, build, null);
+		boolean result = true;
+		String stdOut = strBuf.toString();
+		
+		if (stdOut.contains("did not match any workspaces")) {
+			listener.error("The workspace probably doesn't exist.");
+
+			output.println("  RTC SCM - Jazz Client: Specified workspace does not exist...");
+
+			result = false;
+		}
+		else
+		{
+			output.println("  RTC SCM - Jazz Client: Specified workspace already exists...");			
+		}
+        return result;
+    }
+	
+	/****************************************************
+		
+		public boolean createWorkspace() throws IOException, InterruptedException {
+		
+     * Call <tt>scm create workspace</tt> command. <p/>
+     * <p/>
+     * Create the workspace.
+     *
+     * @return <tt>true</tt> on success
+     * @throws IOException
+     * @throws InterruptedException
+	****************************************************/
+    public boolean createWorkspace() throws IOException, InterruptedException {
+		//output to console.
+		PrintStream output = listener.getLogger();
+		output.println("  RTC SCM - Jazz Client: Creating Workspace...");
+
+        Command cmd = new CreateWorkspaceCommand(configuration);
+		boolean result = joinWithPossibleTimeout(run(cmd.getArguments()), true, listener, null) == 0;
+        return result;
     }
 
-    /**
+	/****************************************************
+	
+		private String getVersion() throws IOException, InterruptedException {
+	
      * Call <tt>scm daemon stop</tt> command. <p/>
      * <p/>
      * Will try to stop any daemon associated with the workspace.
@@ -97,99 +187,139 @@ public class JazzClient {
      * @return <tt>true</tt> on success
      * @throws IOException
      * @throws InterruptedException
-     */
+	****************************************************/
     public boolean stopDaemon() throws IOException, InterruptedException {
-        ArgumentListBuilder args = new ArgumentListBuilder(findSCMExecutable());
+        ArgumentListBuilder args = new ArgumentListBuilder(SCM_CMD);
 
         args.add(new StopDaemonCommand(configuration).getArguments().toCommandArray());
 
-        return (joinWithPossibleTimeout(l(args)) == 0);
+        return (joinWithPossibleTimeout(l(args), true, listener, null) == 0);
     }
 
-    protected String findSCMExecutable() {
-        File file = new File(jazzExecutable);
-
-        // First, check if we can use the configured jazz executable
-        if (file.getName().startsWith("scm")) {
-            return jazzExecutable;
-        }
-
-        // Else, try to find a suitable scm command in the same directory as the configured one
-        String[] cmds = {"scm", "scm.exe", "scm.sh"};
-        String installDir = file.getParent();
-        if (installDir != null) {
-            for (String cmd : cmds) {
-                String fullCmdPath = installDir + '/' + cmd;
-                if (canExecute(fullCmdPath)) {
-                    return fullCmdPath;
-                }
-            }
-        }
-
-        // If not found, hope that there is a scm command in the system's PATH
-        return SCM_CMD;
-    }
-
-    protected boolean canExecute(String fullCmdPath) {
-        return new File(fullCmdPath).canExecute();
-    }
-
-    /**
-     * Disable scm's version auto detection and use this specific version
-     *
-     * @param version
-     */
-    public void setVersion(String version) {
-        this.version = version;
-    }
-
-    public String getVersion() throws IOException, InterruptedException {
-        if (this.version == null) {
-            VersionCommand cmd = new VersionCommand(configuration);
-            this.version = execute(cmd);
-        }
-        return this.version;
-    }
-
-    /**
+	/****************************************************
+	
+		public List<JazzChangeSet> accept() throws IOException, InterruptedException {
+	
      * Call <tt>scm accept</tt> command.<p/>
      *
-     * @return all changeSets accepted, complete with affected paths and related work itens
+     * @return all changeSets accepted, complete with affected paths and related work items
      * @throws IOException
      * @throws InterruptedException
-     */
+	****************************************************/
     public List<JazzChangeSet> accept() throws IOException, InterruptedException {
+ 		//output to console.
+		PrintStream output = listener.getLogger();
+		output.println("  RTC SCM - Jazz Client: Accepting changes...");
+		String defaultWS = configuration.getWorkspaceName();
+				
+		//configuration.display("JazzClient - accept(1)");
+
         Map<String, JazzChangeSet> compareCmdResults = compare();
 
+		output.println("      -------------------------------------");
         if (!compareCmdResults.isEmpty()) {
-            Map<String, JazzChangeSet> acceptCmdResult = accept(compareCmdResults.keySet());
+       		output.println("      -- " + compareCmdResults.values().size() + " Code Changes - Detected --");
+			
+			//Remove any changesets that are component additions
+			//	what happens if the addition is the only change?
+			//	does accept command change for components/changesets
+			//output.println(compareCmdResults.keySet().size() + " changesets.");
+			boolean componentsChanged = false;
+			if (compareCmdResults.containsKey("Added component")) {
+				compareCmdResults.remove("Added component");
+				componentsChanged = true;
+			}
+			//output.println(compareCmdResults.keySet().size() + " changesets AFTER.");
 
-            for (Map.Entry<String, JazzChangeSet> entry : compareCmdResults.entrySet()) {
+			accept(compareCmdResults.keySet());
+			
+			if (componentsChanged) {
+				load();
+			}
+
+            /*for (Map.Entry<String, JazzChangeSet> entry : compareCmdResults.entrySet()) {
                 JazzChangeSet changeSet1 = entry.getValue();
                 JazzChangeSet changeSet2 = acceptCmdResult.get(entry.getKey());
-                if (changeSet2 == null) {
-                    throw new IOException("'scm accept' output invalid");
-                }
                 changeSet1.copyItemsFrom(changeSet2);
-            }
+            }*/
+			
+            output.println("      -- Code Changes - 'Accept' Complete");
+        } else {
+       		output.println("      -- NO Code Changes Detected");
         }
+		output.println("      -------------------------------------");
 
         return new ArrayList<JazzChangeSet>(compareCmdResults.values());
     }
 
-    protected Map<String, JazzChangeSet> accept(Collection<String> changeSets) throws IOException, InterruptedException {
-        AcceptCommand cmd = new AcceptCommand(configuration, changeSets, getVersion());
+	/****************************************************
+	
+		private String getVersion() throws IOException, InterruptedException {
+	
+	****************************************************/
+    private String getVersion() throws IOException, InterruptedException {
+        VersionCommand cmd = new VersionCommand(configuration);
         return execute(cmd);
     }
 
-    protected Map<String, JazzChangeSet> compare() throws IOException, InterruptedException {
+	/****************************************************
+	
+		private Map<String, JazzChangeSet> accept(Collection<String> changeSets) throws IOException, InterruptedException {
+	
+	****************************************************/
+    private Map<String, JazzChangeSet> accept(Collection<String> changeSets) throws IOException, InterruptedException {
+ 		//output to console.
+		PrintStream output = listener.getLogger();
+		output.println("  RTC SCM - Jazz Client: Accept...");
+        String version = getVersion(); // TODO The version should be checked when configuring the Jazz Executable
+        
+        //configuration.display("JazzClient() - accept(2)");
+        
+        AcceptCommand cmd = new AcceptCommand(configuration, changeSets, version, listener, jazzExecutable);
+        return execute(cmd, null);
+		//return joinWithPossibleTimeout(run(cmd.getArguments(), null), true, listener, null) == 0;
+    }
+
+	/****************************************************
+	
+		private Map<String, JazzChangeSet> compare() throws IOException, InterruptedException {
+	
+	****************************************************/
+    private Map<String, JazzChangeSet> compare() throws IOException, InterruptedException {
+ 		//output to console.
+		PrintStream output = listener.getLogger();
+		output.println("  RTC SCM - Jazz Client: Compare...");
+
         CompareCommand cmd = new CompareCommand(configuration);
-        return execute(cmd);
+		cmd.setListener(listener);
+		
+		java.util.Map compareResult = null;
+		try {
+			compareResult = execute(cmd);
+		} catch (hudson.AbortException e) {
+			output.println("  RTC SCM - Jazz Client: Compare command detected AbortException");
+			compareResult = new java.util.HashMap();
+			compareResult.put("AbortException", null);
+		}
+		return compareResult;
     }
 
-    private <T> T execute(ParseableCommand<T> cmd) throws IOException, InterruptedException {
+	private <T> T execute(ParseableCommand<T> cmd) throws IOException, InterruptedException {
+		return execute(cmd, jazzExecutable);
+	}
+	
+	/****************************************************
+	
+		private <T> T execute(ParseableCommand<T> cmd) throws IOException, InterruptedException {
+	
+	****************************************************/
+    private <T> T execute(ParseableCommand<T> cmd, String jazzExecutable) throws IOException, InterruptedException {
+ 		//output to console.
+		PrintStream output = listener.getLogger();
+		//output.println("  RTC SCM - Jazz Client: Execute.");
+
         BufferedReader in = new BufferedReader(new InputStreamReader(
-                new ByteArrayInputStream(popen(cmd.getArguments()).toByteArray())));
+                new ByteArrayInputStream(popen(cmd.getArguments(), jazzExecutable).toByteArray())));
         T result;
 
         try {
@@ -203,75 +333,154 @@ public class JazzClient {
         return result;
     }
 
-    private ProcStarter l(ArgumentListBuilder args) {
-        // set the default stdout
-        return launcher.launch().cmds(args).stdout(listener);
+	/****************************************************
+	
+		private ProcStarter l(ArgumentListBuilder args) 
+	
+	****************************************************/
+	private ProcStarter l(ArgumentListBuilder args) {
+		String consoleString = "  RTC SCM - Jazz Client: Launching scm.exe...\n";
+		boolean[] maskArray = args.toMaskArray();
+		String[] cmdArray = args.toCommandArray();
+		
+		for (int i = 0; i < maskArray.length; i++) {
+			if (maskArray[i] == false) {
+				consoleString += cmdArray[i] + " ";
+			} else {
+				consoleString += "**** ";
+			}
+		}
+		
+		//output to console.
+		PrintStream output = listener.getLogger();
+		//output.println(consoleString);
+		
+		// set the default stdout
+		return launcher.launch().cmds(args).stdout(listener);
+	}
+
+	/****************************************************
+	
+		private ProcStarter run(ArgumentListBuilder args) 
+	
+	****************************************************/
+	protected ProcStarter run(ArgumentListBuilder args, String command) {
+		if (command != null) {
+			args = args.clone().prepend(command);
+		}
+	    return l(args);
+	} // End: run(ArgumentListBuilder args) 
+	
+	/****************************************************
+	
+		private ProcStarter run(ArgumentListBuilder args) 
+	
+	****************************************************/
+	private ProcStarter run(ArgumentListBuilder args) {
+		return run(args, jazzExecutable);
+	} // End: run(ArgumentListBuilder args) 
+	
+	/****************************************************
+	
+		private int joinWithPossibleTimeout(ProcStarter proc, boolean useTimeout, final TaskListener listener, StringBuffer strBuf) throws IOException, InterruptedException 
+	
+	****************************************************/
+	private int joinWithPossibleTimeout(ProcStarter proc, boolean useTimeout, final TaskListener listener, StringBuffer strBuf) throws IOException, InterruptedException {
+		AbstractBuild currentBuild = null;
+		return joinWithPossibleTimeout(proc, useTimeout, listener, strBuf, currentBuild, null);
+	}
+
+	/****************************************************
+	
+		private int joinWithPossibleTimeout(ProcStarter proc, boolean useTimeout, final TaskListener listener, StringBuffer strBuf, AbstractBuild currentBuild) throws IOException, InterruptedException 
+	
+	****************************************************/
+	protected int joinWithPossibleTimeout(ProcStarter proc, boolean useTimeout, final TaskListener listener, StringBuffer strBuf, AbstractBuild currentBuild, String stringToHide) throws IOException, InterruptedException 
+	{
+		int result = -1;
+		
+		try {
+			PipedInputStream pis = null;
+			if(strBuf != null) {
+				PipedOutputStream pos = new PipedOutputStream();
+				pis = new PipedInputStream(pos, 1000000);
+				proc = proc.stdout(pos);
+			}
+			if (useTimeout) {
+				
+				hudson.Proc procStarted = proc.start();
+				result = procStarted.joinWithTimeout(TIMEOUT, TimeUnit.SECONDS, listener);
+			} else {
+				hudson.Proc procStarted = proc.start();
+				result = procStarted.join();
+			}
+			if(strBuf != null) {
+				byte[] stdoutDataArr = new byte[pis.available()];
+				pis.read(stdoutDataArr, 0, stdoutDataArr.length);
+				String stdoutStr = new String(stdoutDataArr);
+				if(stringToHide != null) {
+					stdoutStr = stdoutStr.replaceAll(stringToHide, "****");
+				}
+				strBuf.append(stdoutStr);
+				PrintStream output = listener.getLogger();
+				output.println(stdoutStr);
+			}
+		} catch (InterruptedException e) {
+			throw e;
+		} catch (Exception e) {
+			if (listener != null) {
+				listener.error("Exception caught in joinWithPossibleTimeout: "+e);
+			}
+		}
+		
+		return result;
+	} // End: joinWithPossibleTimeout(...)
+
+	/****************************************************
+	
+		private ByteArrayOutputStream popen(ArgumentListBuilder args)
+		
+		Runs the command and captures the output.
+	
+	****************************************************/
+	private ByteArrayOutputStream popen(ArgumentListBuilder args, String jazzExecutable)
+	            throws IOException, InterruptedException 
+	{
+		try {
+			
+			// scm produces text in the platform default encoding, so we need to convert it back to UTF-8
+			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			WriterOutputStream o = new WriterOutputStream(new OutputStreamWriter(baos, "UTF-8"),
+					java.nio.charset.Charset.forName("UTF-8"));
+					
+			PrintStream output = listener.getLogger();
+			
+			ForkOutputStream fos = new ForkOutputStream(o, output);
+			ProcStarter pstarter = run(args, jazzExecutable);
+
+			if (joinWithPossibleTimeout(pstarter.stdout(fos), true, listener, null) == 0) {
+				o.flush();
+				return baos;
+			} else {
+				String errorString = "Failed to run ";
+				boolean[] maskArray = args.toMaskArray();
+				String[] cmdArray = args.toCommandArray();
+				
+				for (int i = 0; i < maskArray.length; i++) {
+					if (maskArray[i] == false) {
+						errorString += cmdArray[i] + " ";
+					} else {
+						errorString += "**** ";
+					}
+				}
+				
+				listener.error(errorString);
+				throw new AbortException();
+			}
+		} catch (Exception e) {
+			listener.error("Exception in popen " + e);
+			throw new AbortException();
+		}
     }
 
-    private ProcStarter run(ArgumentListBuilder args) {
-        ArgumentListBuilder cmd = args.clone().prepend(jazzExecutable);
-        return l(cmd);
-    }
-
-    private int joinWithPossibleTimeout(ProcStarter proc) throws IOException, InterruptedException {
-        return configuration.isUseTimeout() ? proc.start().joinWithTimeout(configuration.getTimeoutValue(), TimeUnit.SECONDS, listener) : proc.join();
-    }
-
-    /**
-     * Runs the command and captures the output.
-     */
-    private ByteArrayOutputStream popen(ArgumentListBuilder args)
-            throws IOException, InterruptedException {
-
-        // scm produces text in the platform default encoding, so we need to convert it back to UTF-8
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        WriterOutputStream o = new WriterOutputStream(new OutputStreamWriter(baos, "UTF-8"),
-                getDefaultCharset());
-
-        PrintStream output = listener.getLogger();
-        ForkOutputStream fos = new ForkOutputStream(o, output);
-        if (joinWithPossibleTimeout(run(args).stdout(fos)) == 0) {
-            o.flush();
-            return baos;
-        } else {
-            listener.error("Failed to run " + toMaskedCommandLine(args));
-            throw new AbortException();
-        }
-    }
-
-    /**
-     * A version of ArgumentListBuilder.toStringWithQuote() that also masks fields marked as 'masked'
-     */
-    protected String toMaskedCommandLine(ArgumentListBuilder argsBuilder) {
-        StringBuilder buf = new StringBuilder();
-        List<String> args = argsBuilder.toList();
-        boolean[] masks = argsBuilder.toMaskArray();
-
-        for (int i = 0; i < args.size(); i++) {
-            String arg;
-            if (masks[i]) {
-                arg = "********";
-            } else {
-                arg = args.get(i);
-            }
-
-            if (buf.length() > 0) buf.append(' ');
-
-            if (arg.indexOf(' ') >= 0 || arg.length() == 0)
-                buf.append('"').append(arg).append('"');
-            else
-                buf.append(arg);
-        }
-        return buf.toString();
-    }
-
-
-    private Charset getDefaultCharset() {
-        // First check if we can get currentComputer. See issue JENKINS-11874
-        if (Computer.currentComputer() != null) {
-            return Computer.currentComputer().getDefaultCharset();
-        } else {
-            return Charset.forName("UTF-8");
-        }
-    }
-}
+} //End: public class JazzClient(..)

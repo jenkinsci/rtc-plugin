@@ -33,7 +33,7 @@ public class JazzRepositoryBrowserTest {
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         when(build.getProject()).thenReturn(project);
-        when(project.getScm()).thenReturn(new JazzSCM(SERVER_URL, null, null, null, null, false, null));
+        when(project.getScm()).thenReturn(new JazzSCM(SERVER_URL, null, null, null, false));
     }
 
     @Test

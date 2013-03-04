@@ -3,8 +3,6 @@ package com.deluan.jenkins.plugins.rtc.changelog;
 import hudson.model.User;
 import hudson.scm.ChangeLogSet;
 import hudson.scm.EditType;
-import org.apache.commons.lang.builder.EqualsBuilder;
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang.builder.ToStringBuilder;
 import org.kohsuke.stapler.export.Exported;
 import org.kohsuke.stapler.export.ExportedBean;
@@ -162,39 +160,33 @@ public final class JazzChangeSet extends ChangeLogSet.Entry implements Comparabl
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (obj == this) {
-            return true;
-        }
-        if (obj.getClass() != getClass()) {
-            return false;
-        }
-        JazzChangeSet rhs = (JazzChangeSet) obj;
-        return new EqualsBuilder()
-                .append(date, rhs.date)
-                .append(email, rhs.email)
-                .append(items, rhs.items)
-                .append(msg, rhs.msg)
-                .append(rev, rhs.rev)
-                .append(user, rhs.user)
-                .append(workItems, rhs.workItems)
-                .isEquals();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        JazzChangeSet changeSet = (JazzChangeSet) o;
+
+        if (date != null ? !date.equals(changeSet.date) : changeSet.date != null) return false;
+        if (email != null ? !email.equals(changeSet.email) : changeSet.email != null) return false;
+        if (items != null ? !items.equals(changeSet.items) : changeSet.items != null) return false;
+        if (msg != null ? !msg.equals(changeSet.msg) : changeSet.msg != null) return false;
+        if (rev != null ? !rev.equals(changeSet.rev) : changeSet.rev != null) return false;
+        if (user != null ? !user.equals(changeSet.user) : changeSet.user != null) return false;
+        if (workItems != null ? !workItems.equals(changeSet.workItems) : changeSet.workItems != null) return false;
+
+        return true;
     }
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder(17, 37)
-                .append(date)
-                .append(email)
-                .append(items)
-                .append(msg)
-                .append(rev)
-                .append(user)
-                .append(workItems)
-                .toHashCode();
+        int result = user != null ? user.hashCode() : 0;
+        result = 31 * result + (email != null ? email.hashCode() : 0);
+        result = 31 * result + (date != null ? date.hashCode() : 0);
+        result = 31 * result + (rev != null ? rev.hashCode() : 0);
+        result = 31 * result + (msg != null ? msg.hashCode() : 0);
+        result = 31 * result + (items != null ? items.hashCode() : 0);
+        result = 31 * result + (workItems != null ? workItems.hashCode() : 0);
+        return result;
     }
 
     @ExportedBean(defaultVisibility = 999)
@@ -251,29 +243,24 @@ public final class JazzChangeSet extends ChangeLogSet.Entry implements Comparabl
         }
 
         @Override
-        public boolean equals(Object obj) {
-            if (obj == null) {
-                return false;
-            }
-            if (obj == this) {
-                return true;
-            }
-            if (obj.getClass() != getClass()) {
-                return false;
-            }
-            Item rhs = (Item) obj;
-            return new EqualsBuilder()
-                    .append(path, rhs.path)
-                    .append(action, rhs.action)
-                    .isEquals();
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Item item = (Item) o;
+
+            if (action != null ? !action.equals(item.action) : item.action != null) return false;
+            //noinspection RedundantIfStatement
+            if (path != null ? !path.equals(item.path) : item.path != null) return false;
+
+            return true;
         }
 
         @Override
         public int hashCode() {
-            return new HashCodeBuilder(17, 37).
-                    append(path).
-                    append(action).
-                    toHashCode();
+            int result = path != null ? path.hashCode() : 0;
+            result = 31 * result + (action != null ? action.hashCode() : 0);
+            return result;
         }
     }
 }

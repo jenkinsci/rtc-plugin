@@ -17,9 +17,8 @@ public class JazzChangeSetList extends ChangeLogSet<JazzChangeSet> {
         super(build);
         Collections.reverse(logs);  // put new things first
         this.changeSets = Collections.unmodifiableList(logs);
-        for (JazzChangeSet log : logs) {
+        for (JazzChangeSet log : logs)
             log.setParent(this);
-        }
     }
 
     public boolean isEmptySet() {
@@ -35,8 +34,9 @@ public class JazzChangeSetList extends ChangeLogSet<JazzChangeSet> {
         return changeSets;
     }
 
+    public
     @Override
-    public String getKind() {
+    String getKind() {
         return "rtc";
     }
 

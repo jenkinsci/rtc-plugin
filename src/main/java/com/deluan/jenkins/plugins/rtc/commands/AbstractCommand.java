@@ -3,6 +3,7 @@ package com.deluan.jenkins.plugins.rtc.commands;
 import com.deluan.jenkins.plugins.rtc.JazzConfiguration;
 import hudson.util.ArgumentListBuilder;
 import org.apache.commons.lang.StringUtils;
+import java.io.*;
 
 /**
  * @author deluan
@@ -10,6 +11,10 @@ import org.apache.commons.lang.StringUtils;
 public abstract class AbstractCommand implements Command {
 
     private final JazzConfiguration config;
+
+    protected JazzConfiguration getConfig() {
+        return config;
+    }
 
     public AbstractCommand(JazzConfiguration configurationProvider) {
         this.config = configurationProvider;
@@ -32,12 +37,18 @@ public abstract class AbstractCommand implements Command {
         return args.add("-r", getConfig().getRepositoryLocation());
     }
 
-    protected ArgumentListBuilder addLocalWorkspaceArgument(ArgumentListBuilder args) {
+    protected ArgumentListBuilder addLocalWorkspaceArgument(ArgumentListBuilder args) {				
         args.add("-d");
-        return args.add(getConfig().getJobWorkspace());
+        args.add(getConfig().getJobWorkspace());		   
+        
+        return args;
     }
+	
+    protected ArgumentListBuilder addSharedWorkspaceArgument(ArgumentListBuilder args) {
+        args.add("-d");
+		String sPath = getConfig().getCommonWorkspaceUNC() + getConfig().getJobName() + "\\";
+		args.add(sPath);
 
-    protected JazzConfiguration getConfig() {
-        return config;
+        return args;
     }
 }
