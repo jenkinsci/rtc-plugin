@@ -7,7 +7,7 @@
   </parent>
 
     <artifactId>rtc</artifactId>
-    <version>0.4</version>
+    <version>0.4-SNAPSHOT</version>
     <packaging>hpi</packaging>
 
     <name>Jenkins RTC plugin</name>
