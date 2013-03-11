@@ -70,6 +70,7 @@ public class AcceptCommand extends AbstractCommand implements ParseableCommand<M
 			}
 
 			args.add("--flow-components", "-o", "-v");
+			addRepositoryArgument(args);
 		} else { // Use load rules.
 			if (output != null) {
 				output.println("     -- Using Load Rules...[");

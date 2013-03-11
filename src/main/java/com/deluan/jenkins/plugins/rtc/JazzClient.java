@@ -137,7 +137,7 @@ public class JazzClient
 		boolean result = true;
 		String stdOut = strBuf.toString();
 		
-		if (stdOut.contains("did not match any workspaces")) {
+		if (stdOut.contains("did not match any workspaces") || stdOut.contains("Unmatched workspace")) {
 			listener.error("The workspace probably doesn't exist.");
 
 			output.println("  RTC SCM - Jazz Client: Specified workspace does not exist...");
