@@ -7,3 +7,4 @@ work
 *.iml
 *.iws
 *.ipr
+bin/

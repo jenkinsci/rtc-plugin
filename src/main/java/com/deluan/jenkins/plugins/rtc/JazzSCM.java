@@ -4,8 +4,6 @@ import com.deluan.jenkins.plugins.rtc.changelog.JazzChangeLogReader;
 import com.deluan.jenkins.plugins.rtc.changelog.JazzChangeLogWriter;
 import com.deluan.jenkins.plugins.rtc.changelog.JazzChangeSet;
 import com.deluan.jenkins.plugins.rtc.commands.UpdateWorkItemsCommand;
-import com.deluan.jenkins.plugins.rtc.commands.*;
-import com.deluan.jenkins.plugins.rtc.commands.Command;
 
 import hudson.EnvVars;
 import hudson.Extension;
@@ -24,15 +22,11 @@ import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
 import java.io.*;
-import java.io.File;
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.Date;
 import java.util.GregorianCalendar;
 
 /**
@@ -45,30 +39,31 @@ public class JazzSCM extends SCM {
 
     private String repositoryLocation;
     private String workspaceName;
-	private String workspaceName2;
     private String streamName;
+    private String username;
+    private Secret password;
     private String loadRules;
 	private boolean useUpdate;
     private String commonWorkspaceUNC;
     private String agentsUsingCommonWorkspace;
-	private AbstractBuild build;
+    
+    AbstractBuild build;
 
     private JazzRepositoryBrowser repositoryBrowser;
 
     @DataBoundConstructor
-    public JazzSCM(String repositoryLocation, String workspaceName, String streamName, String loadRules, boolean useUpdate) {
-
+    public JazzSCM(String repositoryLocation, String workspaceName, String streamName,
+                   String username, String password,
+                   String loadRules, boolean useUpdate) {
         this.repositoryLocation = repositoryLocation;
         this.workspaceName = workspaceName;
         this.streamName = streamName;
+        this.username = username;
+        this.password = StringUtils.isEmpty(password) ? null : Secret.fromString(password);
         this.loadRules = loadRules;
 		this.useUpdate = useUpdate;
-    }
-		
-	public AbstractBuild getAbstractBuild() {
-		return build;
-	}
-
+    }	
+    
     public String getRepositoryLocation() {
         return repositoryLocation;
     }
@@ -89,11 +84,6 @@ public class JazzSCM extends SCM {
         return agentsUsingCommonWorkspace;
     }
 	
-	public String getDefaultWorkspaceName() {
-        return StringUtils.defaultString(workspaceName, "${NODE_NAME}_${JOB_NAME}");
-        //return StringUtils.defaultString(workspaceName, "${JOB_NAME}");
-    }
-
     public String getStreamName() {
         return streamName;
     }
@@ -103,16 +93,16 @@ public class JazzSCM extends SCM {
     }
 
     public String getUsername() {
-		return getDescriptor().getRTCUserName();
+        return username;
     }
 
     public String getPassword() {
-        return Secret.toString(getDescriptor().getRTCPassword());
+        return Secret.toString(password);
     }
 
-    private JazzClient getClientInstance(Launcher launcher, TaskListener listener, FilePath jobWorkspace) {
+    private JazzClient getClientInstance(Launcher launcher, TaskListener listener, FilePath jobWorkspace) throws IOException, InterruptedException {
         return new JazzClient(launcher, listener, jobWorkspace, getDescriptor().getJazzExecutable(),
-                getConfiguration());
+                getConfiguration(listener));
     }
 
     @Override
@@ -130,11 +120,6 @@ public class JazzSCM extends SCM {
 			listener.error("Build was null. Not sure what scenarios cause this.");
 			result = PollingResult.BUILD_NOW;
 		} else {
-			Node node = build.getBuiltOn();
-			String nodeName = node.getNodeName();
-			workspaceName2 = workspaceName.replace("${NODE_NAME}", nodeName);
-			workspaceName2 = workspaceName2.replace("${JOB_NAME}", build.getProject().getName());
-
 			JazzClient client = getClientInstance(launcher, listener, workspace);
 			try {
 				//return PollingResult.SIGNIFICANT;
@@ -149,11 +134,6 @@ public class JazzSCM extends SCM {
     @Override
     public boolean checkout(AbstractBuild<?, ?> build, Launcher launcher, FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
 		this.build = build;
-
-		Node node = build.getBuiltOn();
-        String nodeName = node.getNodeName();
-		workspaceName2 = workspaceName.replace("${NODE_NAME}", nodeName);
-		workspaceName2 = workspaceName2.replace("${JOB_NAME}", build.getProject().getName());
 		
         JazzClient client = getClientInstance(launcher, listener, workspace);
 		
@@ -261,9 +241,8 @@ public class JazzSCM extends SCM {
 		}
 	}
 	
-	private List<JazzChangeSet> updateWorkItems(AbstractBuild<?, ?> build, BuildListener listener, JazzClient client) {
+	private List<JazzChangeSet> updateWorkItems(AbstractBuild<?, ?> build, BuildListener listener, JazzClient client) throws IOException, InterruptedException {
 		List<JazzChangeSet> changes = null;
-		String pathString = null;
 		FilePath path = null;
 		try {
 			path = build.getWorkspace();
@@ -293,7 +272,7 @@ public class JazzSCM extends SCM {
 			controllerPort = "8080";
 		}
 		
-		JazzConfiguration config = getConfiguration();
+		JazzConfiguration config = getConfiguration(listener);
 		try {
 			path.act(new com.deluan.jenkins.plugins.rtc.commands.LoadCommand.RemoteFileWriter(path.getRemote() + File.separator + build.getFullDisplayName().substring(0, build.getFullDisplayName().indexOf(" ")) + ".txt", config.getLoadRules()));
 		} catch (Exception e) {
@@ -302,7 +281,7 @@ public class JazzSCM extends SCM {
 			config.consoleOut("Caused by: " + e.getCause());
 		}
 		
-		UpdateWorkItemsCommand cmd = new UpdateWorkItemsCommand(getConfiguration());
+		UpdateWorkItemsCommand cmd = new UpdateWorkItemsCommand(config);
 
 		//set parameters
 		cmd.setUserName(config.getUsername());
@@ -320,7 +299,6 @@ public class JazzSCM extends SCM {
 			listener.error("" + e);
 			listener.error("Continuing");
 		}
-		boolean result = true;
 		String stdOut = strBuf.toString();
 		
 		if (stdOut.indexOf("List of all change sets since last build for ") > 0) {
@@ -423,17 +401,50 @@ public class JazzSCM extends SCM {
         return (DescriptorImpl) super.getDescriptor();
     }
 
-    public JazzConfiguration getConfiguration() {
-        JazzConfiguration configuration = new JazzConfiguration();
-        configuration.setUsername(getDescriptor().getRTCUserName());
-        configuration.setPassword(Secret.toString(getDescriptor().getRTCPassword()));
+    JazzConfiguration getConfiguration(final TaskListener listener) throws IOException, InterruptedException {
+        final JazzConfiguration configuration = new JazzConfiguration();
+        
+        final DescriptorImpl globalConfig = getDescriptor();
+        
+        // Note: with all of the fallbacks below, we perform the fallback here on demand
+        // rather than in the .jelly file: if the global configuration changes after
+        // the job is created, we want that new global configuration value to be used,
+        // not just the one that was present when this job's configation was created.
+        
+        // Use job-specific username if specified, otherwise fall back to globally-configured
+        String username = this.username;        
+        if (StringUtils.isEmpty(username)) {
+        	username = globalConfig.getRTCUserName();
+        }
+        configuration.setUsername(username);
+        
+        // Use job-specific password if specified, otherwise fall back to globally-configured
+        Secret password = this.password;
+        if (password == null || StringUtils.isEmpty(Secret.toString(password))) {
+        	password = globalConfig.getRTCPassword();
+        }
+        configuration.setPassword(Secret.toString(password));
+        
+        // Use job-specific repo if specified, otherwise fall back to globally-configured
+        String repositoryLocation = this.repositoryLocation;
+        if (StringUtils.isEmpty(repositoryLocation)) {
+            repositoryLocation = globalConfig.getRTCServerURL();
+        }        
         configuration.setRepositoryLocation(repositoryLocation);
+        
+		// Expand environment variables such as NODE_NAME and JOB_NAME to produce the actual workspace name.
+		String workspaceName = this.workspaceName;
+		if (this.build != null) {
+			final EnvVars environment = build.getEnvironment(listener);
+			workspaceName = environment.expand(workspaceName);
+		}
+		configuration.setWorkspaceName(workspaceName);
+
         configuration.setStreamName(streamName);
         configuration.setLoadRules(loadRules);
-        configuration.setWorkspaceName(workspaceName2);
-		configuration.setUseUpdate(useUpdate);
+        configuration.setUseUpdate(useUpdate);
 
-        return configuration;
+		return configuration;
     }
 
     @Extension
@@ -463,11 +474,11 @@ public class JazzSCM extends SCM {
 		public String getRTCUserName() {
             return RTCUserName;
         }
-	
+		
 		public Secret getRTCPassword() {
             return RTCPassword;
         }
-
+		
         @Override
         public SCM newInstance(StaplerRequest req, JSONObject formData) throws FormException {
             JazzSCM scm = (JazzSCM) super.newInstance(req, formData);
@@ -498,13 +509,9 @@ public class JazzSCM extends SCM {
         }
 		
 		public String getRTCServerURL() {
-            if (RTCServerURL == null) {
-                return "";
-            } else {
-                return RTCServerURL;
-            }
+            return Util.fixEmpty(RTCServerURL);
         }
-
+		
         public FormValidation doExecutableCheck(@QueryParameter String value) {
             return FormValidation.validateExecutable(value);
         }

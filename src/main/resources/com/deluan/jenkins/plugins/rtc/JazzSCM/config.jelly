@@ -1,23 +1,40 @@
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
-    <f:entry title="${%Repository URL}" field="repositoryLocation">
-        <f:textbox default="${descriptor.RTCServerURL}"/>
-    </f:entry>
     <f:entry title="${%Build workspace}" field="workspaceName">
         <f:textbox default="${descriptor.defaultWS}"/>
     </f:entry>
+    
     <f:entry title="${%Source stream}" field="streamName">
         <f:textbox/>
     </f:entry>
+    
     <f:entry title="${%Load rules}" field="loadRules">
         <f:textarea/>
     </f:entry>
-    <f:entry title="Use update">
-        <f:checkbox name="useUpdate" checked="${h.defaultToTrue(scm.useUpdate)}" default="${descriptor.defaultUseUpdate}" />
-		If checked, Jenkins will use previously downloaded files whenever possible,
-		making the build faster.
-		But this causes the artifacts from the
-		previous build to remain when a new build starts.
+    
+    <f:entry title="Use update" field="useUpdate">
+        <f:checkbox checked="${h.defaultToTrue(scm.useUpdate)}" default="${descriptor.defaultUseUpdate}" />		
     </f:entry>
+    
     <t:listScmBrowsers name="rtc.browser"/>
+    
+    <f:block>
+    RTC Job-Specific Overrides:
+    </f:block>
+
+    <f:entry title="${%Repository URL}" field="repositoryLocation"
+    	description="If left blank, uses global value (currently ${descriptor.RTCServerURL})">
+        <f:textbox/>
+		
+    </f:entry>
+
+	<f:entry title="${%RTC User Name}" field="username"
+		description="If left blank, uses global value (currently ${descriptor.RTCUserName})">
+		<f:textbox/>
+	</f:entry>
+	
+	<f:entry title="${%RTC Password}" field="password"
+		description="If left blank, uses global value">
+		<f:password/>		
+	</f:entry>
 </j:jelly>
