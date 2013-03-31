@@ -3,10 +3,15 @@ import hudson.FilePath;
 import hudson.model.*;
 import java.io.*;
 
+import org.apache.commons.lang.builder.EqualsBuilder;
+import org.apache.commons.lang.builder.HashCodeBuilder;
+
 /**
  * @author deluan
  */
-public class JazzConfiguration implements Cloneable {
+public final class JazzConfiguration {
+    /* package */ static final Long DEFAULT_TIMEOUT = 60L * 60; // in seconds
+    
     private String repositoryLocation;
     private String workspaceName;
     private String defaultWorkspaceName;
@@ -21,8 +26,46 @@ public class JazzConfiguration implements Cloneable {
     private String password;
 	private boolean useUpdate;
     private FilePath jobWorkspace;
+    private boolean useTimeout;
+    private Long timeoutValue;
+    
     TaskListener listener;
 
+    public JazzConfiguration() {      
+    }
+    
+    public JazzConfiguration(JazzConfiguration aJazzConfiguration) {
+        this.repositoryLocation = aJazzConfiguration.repositoryLocation;
+        this.workspaceName = aJazzConfiguration.workspaceName;
+        this.defaultWorkspaceName = aJazzConfiguration.defaultWorkspaceName;
+        this.commonWorkspaceUNC = aJazzConfiguration.commonWorkspaceUNC;
+        this.nodeName = aJazzConfiguration.nodeName;
+        this.jobName = aJazzConfiguration.jobName;
+        this.agentsUsingCommonWorkspace = aJazzConfiguration.agentsUsingCommonWorkspace;
+        this.build = aJazzConfiguration.build;
+        this.listener = aJazzConfiguration.listener;
+        
+        this.streamName = aJazzConfiguration.streamName;
+        this.loadRules = aJazzConfiguration.loadRules;
+        
+        this.username = aJazzConfiguration.username;
+        this.password = aJazzConfiguration.password;
+        this.jobWorkspace = aJazzConfiguration.jobWorkspace;
+        
+        this.useTimeout = aJazzConfiguration.useTimeout;
+        this.timeoutValue = aJazzConfiguration.timeoutValue;        
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return EqualsBuilder.reflectionEquals(this, obj);
+    }
+    
+    @Override
+    public int hashCode() {
+        return HashCodeBuilder.reflectionHashCode(this);
+    }
+    
     public String getRepositoryLocation() {
         return repositoryLocation;
     }
@@ -87,6 +130,14 @@ public class JazzConfiguration implements Cloneable {
         return jobWorkspace;
     }
 
+    public boolean isUseTimeout() {
+        return useTimeout;
+    }
+    
+    public Long getTimeoutValue() {
+        return timeoutValue;
+    }
+    
     public void setRepositoryLocation(String repositoryLocation) {
         this.repositoryLocation = repositoryLocation;
     }
@@ -153,27 +204,13 @@ public class JazzConfiguration implements Cloneable {
         this.jobWorkspace = jobWorkspace;
     }
 
-    @SuppressWarnings({"CloneDoesntDeclareCloneNotSupportedException", "CloneDoesntCallSuperClone"})
-    @Override
-    public JazzConfiguration clone() {
-        JazzConfiguration clone = new JazzConfiguration();
-
-        clone.repositoryLocation = this.repositoryLocation;
-        clone.workspaceName = this.workspaceName;
-        clone.defaultWorkspaceName = this.defaultWorkspaceName;
-        clone.commonWorkspaceUNC = this.commonWorkspaceUNC;
-        clone.nodeName = this.nodeName;
-        clone.jobName = this.jobName;
-        clone.agentsUsingCommonWorkspace = this.agentsUsingCommonWorkspace;
-        clone.streamName = this.streamName;
-        clone.loadRules = this.loadRules;
-        clone.username = this.username;
-        clone.password = this.password;
-        clone.jobWorkspace = this.jobWorkspace;
-
-        return clone;
+    public void setUseTimeout(boolean useTimeout) {
+        this.useTimeout = useTimeout;
     }
- 
+    
+    public void setTimeoutValue(Long timeoutValue) {
+        this.timeoutValue = timeoutValue;
+    }
  
 	public boolean isUsingSharedWorkspace() {
 		

@@ -6,13 +6,10 @@ import hudson.AbortException;
 import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Launcher.ProcStarter;
-import hudson.Proc;
-import hudson.model.Computer;
 import hudson.model.TaskListener;
 import hudson.util.ArgumentListBuilder;
 import hudson.util.ForkOutputStream;
 import hudson.model.*;
-import hudson.util.*;
 import org.kohsuke.stapler.framework.io.WriterOutputStream;
 
 import java.io.*;
@@ -37,8 +34,6 @@ public class JazzClient
 {
     public static final String SCM_CMD = "scm";
 
-    private static final int TIMEOUT = 60 * 60; // in seconds
-
     private JazzConfiguration configuration = new JazzConfiguration();
     private final Launcher launcher;
     private final TaskListener listener;
@@ -55,7 +50,7 @@ public class JazzClient
         this.jazzExecutable = jazzExecutable;
         this.launcher = launcher;
         this.listener = listener;
-        this.configuration = configuration.clone();
+        this.configuration = new JazzConfiguration(configuration);
         this.configuration.setJobWorkspace(jobWorkspace);
         this.configuration.setTaskListener(listener);
         
@@ -96,7 +91,7 @@ public class JazzClient
     	
         Command cmd = new LoadCommand(configuration, listener, jazzExecutable);
 
-        return joinWithPossibleTimeout(run(cmd.getArguments(), null), true, listener, null) == 0;
+        return joinWithPossibleTimeout(run(cmd.getArguments(), null), listener, null) == 0;
     }
 	
 	/****************************************************
@@ -133,7 +128,7 @@ public class JazzClient
 		configuration.consoleOut("    -- Initializing build object --");
 						        
 		StringBuffer strBuf = new StringBuffer();
-		joinWithPossibleTimeout(run(cmd.getArguments()), true, listener, strBuf, build, null);
+		joinWithPossibleTimeout(run(cmd.getArguments()), listener, strBuf, build, null);
 		boolean result = true;
 		String stdOut = strBuf.toString();
 		
@@ -169,7 +164,7 @@ public class JazzClient
 		output.println("  RTC SCM - Jazz Client: Creating Workspace...");
 
         Command cmd = new CreateWorkspaceCommand(configuration);
-		boolean result = joinWithPossibleTimeout(run(cmd.getArguments()), true, listener, null) == 0;
+		boolean result = joinWithPossibleTimeout(run(cmd.getArguments()), listener, null) == 0;
         return result;
     }
 
@@ -193,7 +188,7 @@ public class JazzClient
 
         args.add(new StopDaemonCommand(configuration).getArguments().toCommandArray());
 
-        return (joinWithPossibleTimeout(l(args), true, listener, null) == 0);
+        return (joinWithPossibleTimeout(l(args), listener, null) == 0);
     }
 
 	/****************************************************
@@ -286,22 +281,8 @@ public class JazzClient
 	
 	****************************************************/
     private Map<String, JazzChangeSet> compare() throws IOException, InterruptedException {
- 		//output to console.
-		PrintStream output = listener.getLogger();
-		output.println("  RTC SCM - Jazz Client: Compare...");
-
         CompareCommand cmd = new CompareCommand(configuration);
-		cmd.setListener(listener);
-		
-		java.util.Map compareResult = null;
-		try {
-			compareResult = execute(cmd);
-		} catch (hudson.AbortException e) {
-			output.println("  RTC SCM - Jazz Client: Compare command detected AbortException");
-			compareResult = new java.util.HashMap();
-			compareResult.put("AbortException", null);
-		}
-		return compareResult;
+		return execute(cmd);
     }
 
 	private <T> T execute(ParseableCommand<T> cmd) throws IOException, InterruptedException {
@@ -382,21 +363,23 @@ public class JazzClient
 	
 	/****************************************************
 	
-		private int joinWithPossibleTimeout(ProcStarter proc, boolean useTimeout, final TaskListener listener, StringBuffer strBuf) throws IOException, InterruptedException 
+		private int joinWithPossibleTimeout(ProcStarter proc, final TaskListener listener, StringBuffer strBuf) throws IOException, InterruptedException 
 	
 	****************************************************/
-	private int joinWithPossibleTimeout(ProcStarter proc, boolean useTimeout, final TaskListener listener, StringBuffer strBuf) throws IOException, InterruptedException {
-		AbstractBuild currentBuild = null;
-		return joinWithPossibleTimeout(proc, useTimeout, listener, strBuf, currentBuild, null);
+	private int joinWithPossibleTimeout(ProcStarter proc, final TaskListener listener, StringBuffer strBuf) throws IOException, InterruptedException {
+		return joinWithPossibleTimeout(proc, listener, strBuf, null, null);
 	}
 
 	/****************************************************
 	
-		private int joinWithPossibleTimeout(ProcStarter proc, boolean useTimeout, final TaskListener listener, StringBuffer strBuf, AbstractBuild currentBuild) throws IOException, InterruptedException 
+		private int joinWithPossibleTimeout(ProcStarter proc, final TaskListener listener, StringBuffer strBuf, AbstractBuild currentBuild) throws IOException, InterruptedException 
 	
 	****************************************************/
-	protected int joinWithPossibleTimeout(ProcStarter proc, boolean useTimeout, final TaskListener listener, StringBuffer strBuf, AbstractBuild currentBuild, String stringToHide) throws IOException, InterruptedException 
+	protected int joinWithPossibleTimeout(ProcStarter proc, final TaskListener listener, StringBuffer strBuf, AbstractBuild currentBuild, String stringToHide) throws IOException, InterruptedException 
 	{
+	    boolean useTimeout = configuration.isUseTimeout();
+	    long timeoutValue = configuration.getTimeoutValue();
+	    
 		int result = -1;
 		
 		try {
@@ -406,14 +389,14 @@ public class JazzClient
 				pis = new PipedInputStream(pos, 1000000);
 				proc = proc.stdout(pos);
 			}
+			
+            hudson.Proc procStarted = proc.start();
 			if (useTimeout) {
-				
-				hudson.Proc procStarted = proc.start();
-				result = procStarted.joinWithTimeout(TIMEOUT, TimeUnit.SECONDS, listener);
+				result = procStarted.joinWithTimeout(timeoutValue, TimeUnit.SECONDS, listener);
 			} else {
-				hudson.Proc procStarted = proc.start();
 				result = procStarted.join();
 			}
+			
 			if(strBuf != null) {
 				byte[] stdoutDataArr = new byte[pis.available()];
 				pis.read(stdoutDataArr, 0, stdoutDataArr.length);
@@ -458,7 +441,7 @@ public class JazzClient
 			ForkOutputStream fos = new ForkOutputStream(o, output);
 			ProcStarter pstarter = run(args, jazzExecutable);
 
-			if (joinWithPossibleTimeout(pstarter.stdout(fos), true, listener, null) == 0) {
+			if (joinWithPossibleTimeout(pstarter.stdout(fos), listener, null) == 0) {
 				o.flush();
 				return baos;
 			} else {
