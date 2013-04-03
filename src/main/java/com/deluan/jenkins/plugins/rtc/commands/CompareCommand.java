@@ -24,9 +24,7 @@ public class CompareCommand extends AbstractCommand implements ParseableCommand<
     private static final String DATE_FORMAT = "yyyy-MM-dd-HH:mm:ss";
     private static final String CONTRIBUTOR_FORMAT = "|{name}|{email}|";
     private final SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
-	
-	private TaskListener listener = null;
-	
+		
     public CompareCommand(JazzConfiguration configurationProvider) {
         super(configurationProvider);
     }
@@ -46,10 +44,6 @@ public class CompareCommand extends AbstractCommand implements ParseableCommand<
         return args;
     }
 	
-	public void setListener(TaskListener listener) {
-		this.listener = listener;
-	}
-
     public Map<String, JazzChangeSet> parse(BufferedReader reader) throws ParseException, IOException {
         Map<String, JazzChangeSet> result = new LinkedHashMap<String, JazzChangeSet>();
 		String loadRules = getConfig().getLoadRules();
@@ -100,7 +94,6 @@ public class CompareCommand extends AbstractCommand implements ParseableCommand<
 				}
             } catch (Exception e) {
                 logger.log(Level.WARNING, "Error parsing compare output:\n\n" + line + "\n\n", e);
-				listener.error("caught error " + e);
             }
         }
 
@@ -114,7 +107,7 @@ public class CompareCommand extends AbstractCommand implements ParseableCommand<
     private String parseMessage(String string) {
         String msg = string.trim();
         if (msg.startsWith("\"")) {
-            int closingQuotes = msg.lastIndexOf("\"");
+            int closingQuotes = msg.lastIndexOf('\"');
             msg = msg.substring(1, closingQuotes).trim();
         }
         return msg;

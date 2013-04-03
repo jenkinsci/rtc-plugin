@@ -147,6 +147,8 @@ public class JazzSCMTest {
                 jobConfig.getStreamName(),
                 jobConfig.getUsername(),
                 jobConfig.getPassword(),
+                jobConfig.isUseTimeout(),
+                jobConfig.getTimeoutValue(),
                 jobConfig.getLoadRules(),
                 jobConfig.getUseUpdate());
         
@@ -161,9 +163,12 @@ public class JazzSCMTest {
         private DescriptorImpl descriptor;
 
         public JazzSCMWithCustomDescriptor(String repositoryLocation,
-                String workspaceName, String streamName, String username,
-                String password, String loadRules, boolean useUpdate) {
+                String workspaceName, String streamName,
+                String username, String password,
+                boolean useTimeout, Long timeoutValue,
+                String loadRules, boolean useUpdate) {
             super(repositoryLocation, workspaceName, streamName, username, password,
+                    useTimeout, timeoutValue,
                     loadRules, useUpdate);
         }
         

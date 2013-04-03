@@ -171,11 +171,21 @@ public class JazzChangeSetTest {
     }
 
     @Test
-    public void testEqualsAndHash() {
+    public void testChangeSetEqualsAndHash() {
         Date date = new Date();
         final JazzChangeSet a = createChangeSet("1", date, "deluan", "email@a.com", "msg"); // original JazzChangeSet
         final JazzChangeSet b = createChangeSet("1", date, "deluan", "email@a.com", "msg"); // another JazzChangeSet that has the same values as the original
         final JazzChangeSet c = createChangeSet("2", date, "user", "user@a.com", "msg2");   // another JazzChangeSet with different values
         new EqualsTester(a, b, c, null);
+    }
+    
+    @Test
+    public void testItemsEqualsAndHash() {
+        final JazzChangeSet.Item a = new JazzChangeSet.Item("path", "action");
+        final JazzChangeSet.Item b = new JazzChangeSet.Item("path", "action"); // another JazzChangeSet that has the same values as the original
+        final JazzChangeSet.Item c = new JazzChangeSet.Item("path2", "action2"); // another JazzChangeSet with different values
+        final JazzChangeSet.Item d = new JazzChangeSet.Item("path", "action") {
+        };
+        new EqualsTester(a, b, c, d);
     }
 }

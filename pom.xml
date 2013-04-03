@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.424</version><!-- which version of Jenkins is this plugin built against? -->
+    <version>1.424</version>
   </parent>
 
     <artifactId>rtc</artifactId>
@@ -84,6 +84,12 @@
             <groupId>org.hamcrest</groupId>
             <artifactId>hamcrest-core</artifactId>
             <version>1.3.RC2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.vidageek</groupId>
+            <artifactId>mirror</artifactId>
+            <version>1.6.1</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

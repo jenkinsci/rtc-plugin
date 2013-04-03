@@ -42,6 +42,10 @@ public class JazzSCM extends SCM {
     private String streamName;
     private String username;
     private Secret password;
+    
+    private boolean useTimeout;
+    private Long timeoutValue;
+    
     private String loadRules;
 	private boolean useUpdate;
     private String commonWorkspaceUNC;
@@ -54,12 +58,16 @@ public class JazzSCM extends SCM {
     @DataBoundConstructor
     public JazzSCM(String repositoryLocation, String workspaceName, String streamName,
                    String username, String password,
+                   boolean useTimeout, Long timeoutValue,
                    String loadRules, boolean useUpdate) {
         this.repositoryLocation = repositoryLocation;
         this.workspaceName = workspaceName;
         this.streamName = streamName;
         this.username = username;
         this.password = StringUtils.isEmpty(password) ? null : Secret.fromString(password);
+        this.useTimeout = useTimeout;
+        this.timeoutValue = timeoutValue;
+        
         this.loadRules = loadRules;
 		this.useUpdate = useUpdate;
     }	
@@ -100,6 +108,14 @@ public class JazzSCM extends SCM {
         return Secret.toString(password);
     }
 
+    public boolean getUseTimeout() {
+        return useTimeout;
+    }
+    
+    public Long getTimeoutValue() {
+        return timeoutValue;
+    }
+    
     private JazzClient getClientInstance(Launcher launcher, TaskListener listener, FilePath jobWorkspace) throws IOException, InterruptedException {
         return new JazzClient(launcher, listener, jobWorkspace, getDescriptor().getJazzExecutable(),
                 getConfiguration(listener));
@@ -294,7 +310,7 @@ public class JazzSCM extends SCM {
 
 		StringBuffer strBuf = new StringBuffer();
 		try {
-			client.joinWithPossibleTimeout(client.run(cmd.getArguments(), build.getEnvironment(listener).get("TOOLS_FOLDER") + "\\RTCWorkItemLinker\\run2.bat"), true, listener, strBuf, build, config.getPassword());
+			client.joinWithPossibleTimeout(client.run(cmd.getArguments(), build.getEnvironment(listener).get("TOOLS_FOLDER") + "\\RTCWorkItemLinker\\run2.bat"), listener, strBuf, build, config.getPassword());
 		} catch (Exception e) {
 			listener.error("" + e);
 			listener.error("Continuing");
@@ -440,6 +456,9 @@ public class JazzSCM extends SCM {
 		}
 		configuration.setWorkspaceName(workspaceName);
 
+		configuration.setUseTimeout(useTimeout);
+		configuration.setTimeoutValue(timeoutValue != null ? timeoutValue : JazzConfiguration.DEFAULT_TIMEOUT);
+        
         configuration.setStreamName(streamName);
         configuration.setLoadRules(loadRules);
         configuration.setUseUpdate(useUpdate);
@@ -492,10 +511,12 @@ public class JazzSCM extends SCM {
 
         @Override
         public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-            jazzExecutable = Util.fixEmpty(req.getParameter("rtc.jazzExecutable").trim());
-			RTCServerURL = Util.fixEmpty(req.getParameter("rtc.RTCServerURL").trim());
-			RTCUserName = Util.fixEmpty(req.getParameter("rtc.RTCUserName").trim());
-			RTCPassword = Secret.fromString(Util.fixEmpty(req.getParameter("rtc.RTCPassword")).trim());
+            jazzExecutable = Util.fixEmptyAndTrim(req.getParameter("rtc.jazzExecutable"));
+            RTCServerURL = Util.fixEmptyAndTrim(req.getParameter("rtc.RTCServerURL"));
+            RTCUserName = Util.fixEmptyAndTrim(req.getParameter("rtc.RTCUserName"));
+            String pass = Util.fixEmptyAndTrim(req.getParameter("rtc.RTCPassword"));
+            RTCPassword = (pass == null) ? null : Secret.fromString(pass);
+            
             save();
             return true;
         }
@@ -514,6 +535,14 @@ public class JazzSCM extends SCM {
 		
         public FormValidation doExecutableCheck(@QueryParameter String value) {
             return FormValidation.validateExecutable(value);
+        }
+        
+        public FormValidation doCheckTimeoutValue(@QueryParameter String value) {
+            if (StringUtils.isEmpty(value)) {
+                return FormValidation.ok();
+            }
+            return FormValidation.validatePositiveInteger(value);
+        
         }
     }
 }
