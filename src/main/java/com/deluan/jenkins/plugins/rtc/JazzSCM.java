@@ -136,9 +136,18 @@ public class JazzSCM extends SCM {
 			listener.error("Build was null. Not sure what scenarios cause this.");
 			result = PollingResult.BUILD_NOW;
 		} else {
+			Node node = build.getBuiltOn();
+			workspaceName = workspaceName.replace("${NODE_NAME}", node.getNodeName());
 			JazzClient client = getClientInstance(launcher, listener, workspace);
 			try {
-				//return PollingResult.SIGNIFICANT;
+				
+				//final EnvVars environment = build.getEnvironment(listener);
+				//workspaceName = environment.expand(workspaceName);
+				//configuration.setWorkspaceName(workspaceName);
+				JazzConfiguration configuration = getConfiguration(listener);
+				String wsName = configuration.getWorkspaceName();
+				
+				//workspaceName2 = workspaceName2.replace("${JOB_NAME}", build.getProject().getName());
 				result = (client.hasChanges()) ? PollingResult.SIGNIFICANT : PollingResult.NO_CHANGES;
 			} catch (Exception e) {
 				result = PollingResult.NO_CHANGES;
@@ -173,6 +182,28 @@ public class JazzSCM extends SCM {
 		}
 
         // Forces a load of the workspace. If it's already loaded, the scm command will do nothing.
+		JazzConfiguration config = getConfiguration(listener);
+		FilePath path = null;
+		try {
+			path = build.getWorkspace();
+		} catch (Exception e) {
+			listener.error("error = " + e);
+		}
+
+		// needed because OS on controller may be different than node
+		String remoteSeparator = "\\";
+		if( file.getRemote().startsWith("/") )
+		{
+			remoteSeparator = "/";
+		}
+
+		try {
+			path.act(new com.deluan.jenkins.plugins.rtc.commands.LoadCommand.RemoteFileWriter(path.getRemote() + remoteSeparator + build.getFullDisplayName().substring(0, build.getFullDisplayName().indexOf(" ")) + ".txt", config.getLoadRules()));
+		} catch (Exception e) {
+			e.printStackTrace();
+			config.consoleOut("exception: " + e);
+			config.consoleOut("Caused by: " + e.getCause());
+		}
         client.load();
 				
         // Accepts all incoming changes
@@ -288,23 +319,20 @@ public class JazzSCM extends SCM {
 			controllerPort = "8080";
 		}
 		
-		JazzConfiguration config = getConfiguration(listener);
-		try {
-			path.act(new com.deluan.jenkins.plugins.rtc.commands.LoadCommand.RemoteFileWriter(path.getRemote() + File.separator + build.getFullDisplayName().substring(0, build.getFullDisplayName().indexOf(" ")) + ".txt", config.getLoadRules()));
-		} catch (Exception e) {
-			e.printStackTrace();
-			config.consoleOut("exception: " + e);
-			config.consoleOut("Caused by: " + e.getCause());
-		}
-		
-		UpdateWorkItemsCommand cmd = new UpdateWorkItemsCommand(config);
+		UpdateWorkItemsCommand cmd = new UpdateWorkItemsCommand(getConfiguration(listener));
 
 		//set parameters
+		JazzConfiguration config = getConfiguration(listener);
+		String remoteSeparator = "\\";
+		if( build.getWorkspace().getRemote().startsWith("/") )
+		{
+			remoteSeparator = "/";
+		}
 		cmd.setUserName(config.getUsername());
 		cmd.setPassword(config.getPassword());
 		cmd.setWorkspaceName(config.getWorkspaceName());
 		cmd.setTimeToCheck("" + lastBuild.getTimeInMillis());
-		cmd.setLoadRulesFileName(File.separator + path.getRemote() + File.separator + build.getFullDisplayName().substring(0, build.getFullDisplayName().indexOf(" ")) + ".txt\"");
+		cmd.setLoadRulesFileName("\"" + path.getRemote() + remoteSeparator + build.getFullDisplayName().substring(0, build.getFullDisplayName().indexOf(" ")) + ".txt\"");
 		cmd.setMessage("Workitem built by Jenkins build job " + build.getFullDisplayName());
 		cmd.setURLLink("http://" + controllerName + ":" + controllerPort + "/job/" + build.getFullDisplayName().substring(0, build.getFullDisplayName().indexOf(" ")) + "/" + build.getNumber());
 
