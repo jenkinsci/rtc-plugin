@@ -46,9 +46,27 @@ public abstract class AbstractCommand implements Command {
 	
     protected ArgumentListBuilder addSharedWorkspaceArgument(ArgumentListBuilder args) {
         args.add("-d");
-		String sPath = getConfig().getCommonWorkspaceUNC() + getConfig().getJobName() + "\\";
+		String sPath = getConfig().getCommonWorkspaceUNC() + getConfig().getJobName() + getRemoteSeparator();
 		args.add(sPath);
 
         return args;
     }
+	
+	// needed because OS on controller may be different than node
+	protected String getRemoteSeparator()
+	{
+		if( getConfig().getJobWorkspace().toString().startsWith("/") )
+		{
+			return "/";
+		}
+
+		return "\\";
+	}
+
+	// common way to get load rules skipping empty lines & whitespace
+	protected String getLoadRules()
+	{
+		String lr = getConfig().getLoadRules();
+		return (lr.replaceAll("(?m)^\\s+$", "").trim());
+	}
 }

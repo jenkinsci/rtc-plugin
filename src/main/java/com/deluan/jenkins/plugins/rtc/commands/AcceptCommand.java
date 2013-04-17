@@ -6,15 +6,11 @@ import com.deluan.jenkins.plugins.rtc.commands.accept.AcceptNewOutputParser;
 import com.deluan.jenkins.plugins.rtc.commands.accept.AcceptOldOutputParser;
 import com.deluan.jenkins.plugins.rtc.commands.accept.BaseAcceptOutputParser;
 import hudson.util.ArgumentListBuilder;
-import hudson.model.TaskListener;
+import hudson.model.*;
 import hudson.FilePath;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.text.ParseException;
-import java.util.Collection;
-import java.util.LinkedHashSet;
-import java.util.Map;
+import java.util.*;
 
 /**
  * @author deluan
@@ -48,10 +44,21 @@ public class AcceptCommand extends AbstractCommand implements ParseableCommand<M
 	
 	
     public ArgumentListBuilder getArguments() {
+		PrintStream output = null;
+		if (listener != null) {
+			output = listener.getLogger();
+		}
+		List<ArgumentListBuilder> list = getScmCommands();
+		return list.get(0);
+	}
+	
+	public List<ArgumentListBuilder> getScmCommands()
+	{
+		List<ArgumentListBuilder> result = new ArrayList();
         ArgumentListBuilder args = new ArgumentListBuilder(); 
 
 		// Get load rules.
-        String sLoadRules = getConfig().getLoadRules();
+        String sLoadRules = getLoadRules();
 		PrintStream output = null;
 		if (listener != null) {
 			output = listener.getLogger();
@@ -71,26 +78,29 @@ public class AcceptCommand extends AbstractCommand implements ParseableCommand<M
 
 			args.add("--flow-components", "-o", "-v");
 			addRepositoryArgument(args);
+			result.add(args);
 		} else { // Use load rules.
 			if (output != null) {
 				output.println("     -- Using Load Rules...[");
 				output.println(sLoadRules);
 				output.println("     ]");
 			}
-	    	args = processLoadRules(sLoadRules);
+	    	processLoadRules(sLoadRules, result);
 		}
         
-        return args;
+        return result;
     }
 
 	// Process the load rules.
-	public ArgumentListBuilder processLoadRules(String sLoadRules) {
+	private void processLoadRules(String sLoadRules, List<ArgumentListBuilder> list) {
 		getConfig().consoleOut("-------------------------------");	
 		getConfig().consoleOut("-- process Load Rules - START --");	
 		getConfig().consoleOut("-------------------------------");	
 		String sUsageString = "Usage: [Component]:[Subfolder Path]";
 		
 		FilePath file = getConfig().getBuild().getWorkspace();
+		
+		ArgumentListBuilder args;
 		
 		// Process load rules if they exist.
 		if (sLoadRules != null && sLoadRules.isEmpty() == false) {
@@ -126,6 +136,15 @@ public class AcceptCommand extends AbstractCommand implements ParseableCommand<M
 					String[] RulePieces = sLine.split(":");
 					String sComponent = RulePieces[0];
 					String sFolder = RulePieces[1];
+					
+					if(sFolder.startsWith("/")) {
+						sFolder = sFolder.substring(1, sFolder.length());
+					}
+					
+					if( getRemoteSeparator().equals("\\") )
+					{
+						sFolder = sFolder.replace('/', '\\');
+					}
 				
 					getConfig().consoleOut("   Component: [" + sComponent + "]");
 					getConfig().consoleOut("   Folder: [" + sFolder + "]");
@@ -136,29 +155,23 @@ public class AcceptCommand extends AbstractCommand implements ParseableCommand<M
 					getConfig().consoleOut("   Data: [" + sFileData + "]");
 					
 					try {
-						file.act(new LoadCommand.RemoteFileWriter(file.getRemote() + "\\" + sFileName, sFileData));
+						file.act(new LoadCommand.RemoteFileWriter(file.getRemote() + getRemoteSeparator() + sFileName, sFileData));
 					} catch (Exception e) {
 						e.printStackTrace();
 						getConfig().consoleOut("exception: " + e);
 						getConfig().consoleOut("Caused by: " + e.getCause());
 					}
 
-					if(sFolder.startsWith("/")) {
-						sFolder = sFolder.substring(1, sFolder.length());
-					}
-					//commandData += jazzExecutable + " load -L " + "\"" + file.getRemote() + "\\" + sFileName + "\" " + getConfig().getWorkspaceName() + " -r " + getConfig().getRepositoryLocation() + " -u %1 -P %2 -d " + "\"" + file.getRemote() + "\\" + sFolder + "\" " + sComponent + "\r\n";
-					commandData += jazzExecutable + " accept -r " + getConfig().getRepositoryLocation() + " -u %1 -P %2 -d " + "\"" + file.getRemote() + "\\" + sFolder + "\"\r\n";
+					file = getConfig().getBuild().getWorkspace();
+					args = new ArgumentListBuilder();
+					args.add(jazzExecutable);
+					args.add("accept");
+					addRepositoryArgument(args);
+					addLoginArgument(args);
+					args.add("-d", file.getRemote() + getRemoteSeparator() + sFolder);
+					list.add(args);
 				}
 			}
-			
-			try {
-				file.act(new LoadCommand.RemoteFileWriter(file.getRemote() + "\\" + getConfig().getJobName() + ".bat", "@echo off\n" + commandData));
-			} catch (Exception e) {
-				e.printStackTrace();
-				getConfig().consoleOut("exception: " + e);
-				getConfig().consoleOut("Caused by: " + e.getCause());
-			}
-					
 		} else {
 			getConfig().consoleOut("");	
 			getConfig().consoleOut("No load rules found - OK.");	
@@ -168,14 +181,6 @@ public class AcceptCommand extends AbstractCommand implements ParseableCommand<M
 		getConfig().consoleOut("-------------------------------");	
 		getConfig().consoleOut("-- process Load Rules - END --");	
 		getConfig().consoleOut("-------------------------------");
-		
-		ArgumentListBuilder args = new ArgumentListBuilder();
-		args.add("cmd");
-		args.add("/c");
-		args.add("\"" + file.getRemote() + "\\" + getConfig().getJobName() + ".bat\"");
-        args.addMasked(getConfig().getUsername());
-        args.addMasked(getConfig().getPassword());
-		return args;
 	}
 
 	

@@ -16,6 +16,7 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -89,9 +90,19 @@ public class JazzClient
 		PrintStream output = listener.getLogger();
     	output.println("  RTC SCM - Jazz Client: Loading Workspace.");
     	
-        Command cmd = new LoadCommand(configuration, listener, jazzExecutable);
+		LoadCommand cmd = new LoadCommand(configuration, listener, jazzExecutable);
 
-        return joinWithPossibleTimeout(run(cmd.getArguments(), null), listener, null) == 0;
+		//return joinWithPossibleTimeout(run(cmd.getArguments(), null), true, listener, null) == 0;
+		List<ArgumentListBuilder> scmCommands = cmd.getScmCommands();
+		for( Iterator<ArgumentListBuilder> i = scmCommands.iterator(); i.hasNext(); )
+		{
+			if( joinWithPossibleTimeout(run(i.next(), null), listener, null) != 0)
+			{
+				return false;
+			}
+		}
+
+        return true;
     }
 	
 	/****************************************************
@@ -268,11 +279,19 @@ public class JazzClient
 		output.println("  RTC SCM - Jazz Client: Accept...");
         String version = getVersion(); // TODO The version should be checked when configuring the Jazz Executable
         
-        //configuration.display("JazzClient() - accept(2)");
-        
         AcceptCommand cmd = new AcceptCommand(configuration, changeSets, version, listener, jazzExecutable);
-        return execute(cmd, null);
-		//return joinWithPossibleTimeout(run(cmd.getArguments(), null), true, listener, null) == 0;
+		List<ArgumentListBuilder> scmCommands = cmd.getScmCommands();
+		if( scmCommands.size() == 1 )
+		{
+			return execute(cmd, null);
+		}
+
+		for( Iterator<ArgumentListBuilder> i = scmCommands.iterator(); i.hasNext(); )
+		{
+			joinWithPossibleTimeout(run(i.next(), null), listener, null);
+		}
+
+		return null;
     }
 
 	/****************************************************

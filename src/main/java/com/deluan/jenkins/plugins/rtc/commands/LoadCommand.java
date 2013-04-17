@@ -25,10 +25,16 @@ public class LoadCommand extends AbstractCommand {
     }
 
     public ArgumentListBuilder getArguments() {
+		return(new ArgumentListBuilder());
+	}
+	
+	public List<ArgumentListBuilder> getScmCommands()
+	{
+		List<ArgumentListBuilder> result = new ArrayList();
         ArgumentListBuilder args = new ArgumentListBuilder();
         
         // Get load rules.
-        String sLoadRules = getConfig().getLoadRules();
+        String sLoadRules = getLoadRules();
 		PrintStream output = null;
 		if (listener != null) {
 			output = listener.getLogger();
@@ -45,25 +51,28 @@ public class LoadCommand extends AbstractCommand {
 	        addRepositoryArgument(args);
 	        addLocalWorkspaceArgument(args);
 	    	args.add("-f");
+			result.add(args);
 	    } else { // Use load rules.
 			if (output != null) {
 				output.println("     -- Using Load Rules...[");
 				output.println(sLoadRules);
 				output.println("     ]");
 			}
-	    	args = processLoadRules(sLoadRules);
+	    	processLoadRules(sLoadRules, result);
 	    }
-        return args;
+        return result;
     }
 
 	// Process the load rules.
-	public ArgumentListBuilder processLoadRules(String sLoadRules) {
+	private void processLoadRules(String sLoadRules, List<ArgumentListBuilder> list) {
 		getConfig().consoleOut("-------------------------------");	
 		getConfig().consoleOut("-- process Load Rules - START --");	
 		getConfig().consoleOut("-------------------------------");	
 		String sUsageString = "Usage: [Component]:[Subfolder Path]";
 		
 		FilePath file = getConfig().getBuild().getWorkspace();
+		
+		ArgumentListBuilder args;
 		
 		// Process load rules if they exist.
 		if (sLoadRules != null && sLoadRules.isEmpty() == false) {
@@ -99,6 +108,15 @@ public class LoadCommand extends AbstractCommand {
 					String[] RulePieces = sLine.split(":");
 					String sComponent = RulePieces[0];
 					String sFolder = RulePieces[1];
+					
+					if(sFolder.startsWith("/")) {
+						sFolder = sFolder.substring(1, sFolder.length());
+					}
+
+					if( getRemoteSeparator().equals("\\") )
+					{
+						sFolder = sFolder.replace('/', '\\');
+					}
 				
 					getConfig().consoleOut("   Component: [" + sComponent + "]");
 					getConfig().consoleOut("   Folder: [" + sFolder + "]");
@@ -109,28 +127,26 @@ public class LoadCommand extends AbstractCommand {
 					getConfig().consoleOut("   Data: [" + sFileData + "]");
 					
 					try {
-						file.act(new RemoteFileWriter(file.getRemote() + "\\" + sFileName, sFileData));
+						file.act(new RemoteFileWriter(file.getRemote() + getRemoteSeparator() + sFileName, sFileData));
 					} catch (Exception e) {
 						e.printStackTrace();
 						getConfig().consoleOut("exception: " + e);
 						getConfig().consoleOut("Caused by: " + e.getCause());
 					}
 
-					if(sFolder.startsWith("/")) {
-						sFolder = sFolder.substring(1, sFolder.length());
-					}
-					commandData += jazzExecutable + " load -L " + "\"" + file.getRemote() + "\\" + sFileName + "\" " + getConfig().getWorkspaceName() + " -r " + getConfig().getRepositoryLocation() + " -u %1 -P %2 -d " + "\"" + file.getRemote() + "\\" + sFolder + "\" " + sComponent + "\r\n";
+					file = getConfig().getBuild().getWorkspace();
+					args = new ArgumentListBuilder();
+					args.add(jazzExecutable);
+					args.add("load", "-L", file.getRemote() + getRemoteSeparator() + sFileName);
+					args.add(getConfig().getWorkspaceName());
+					addRepositoryArgument(args);
+					addLoginArgument(args);
+					args.add("-d", file.getRemote() + getRemoteSeparator() + sFolder);
+					args.add(sComponent);
+					args.add("-f");
+					list.add(args);
 				}
 			}
-			
-			try {
-				file.act(new RemoteFileWriter(file.getRemote() + "\\" + getConfig().getJobName() + ".bat", "@echo off\n" + commandData));
-			} catch (Exception e) {
-				e.printStackTrace();
-				getConfig().consoleOut("exception: " + e);
-				getConfig().consoleOut("Caused by: " + e.getCause());
-			}
-					
 		} else {
 			getConfig().consoleOut("");	
 			getConfig().consoleOut("No load rules found - OK.");	
@@ -140,14 +156,6 @@ public class LoadCommand extends AbstractCommand {
 		getConfig().consoleOut("-------------------------------");	
 		getConfig().consoleOut("-- process Load Rules - END --");	
 		getConfig().consoleOut("-------------------------------");
-		
-		ArgumentListBuilder args = new ArgumentListBuilder();
-		args.add("cmd");
-		args.add("/c");
-		args.add("\"" + file.getRemote() + "\\" + getConfig().getJobName() + ".bat\"");
-        args.addMasked(getConfig().getUsername());
-        args.addMasked(getConfig().getPassword());
-		return args;
 	}
 	
 	public static class RemoteFileWriter implements FilePath.FileCallable<Void>, Serializable {
