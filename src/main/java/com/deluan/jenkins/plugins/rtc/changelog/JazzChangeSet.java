@@ -43,7 +43,7 @@ public final class JazzChangeSet extends ChangeLogSet.Entry implements Comparabl
 
     @Exported
     public User getAuthor() {
-        return User.get(user + " <" + email + ">");
+        return User.get(user);
     }
 
     @Exported
@@ -75,7 +75,7 @@ public final class JazzChangeSet extends ChangeLogSet.Entry implements Comparabl
     public Collection<String> getAffectedPaths() {
         Collection<String> paths = new ArrayList<String>(items.size());
         for (Item item : items) {
-            paths.add(item.getPath());
+            paths.add(item.getPath().trim());
         }
         return paths;
     }
@@ -117,11 +117,11 @@ public final class JazzChangeSet extends ChangeLogSet.Entry implements Comparabl
     }
 
     public void setUser(String user) {
-        this.user = user;
+        this.user = user.trim();
     }
 
     public void setEmail(String email) {
-        this.email = email;
+        this.email = email.trim();
     }
 
     public void setDate(Date date) {
@@ -138,11 +138,11 @@ public final class JazzChangeSet extends ChangeLogSet.Entry implements Comparabl
     }
 
     public void setRev(String rev) {
-        this.rev = rev;
+        this.rev = rev.trim();
     }
 
     public void setMsg(String msg) {
-        this.msg = msg;
+        this.msg = msg.trim();
     }
 
     public int compareTo(JazzChangeSet o) {
