@@ -39,6 +39,7 @@ public class JazzSCM extends SCM {
 
     private String repositoryLocation;
     private String workspaceName;
+	private String workspaceNameDynamic = null;
     private String streamName;
     private String username;
     private Secret password;
@@ -137,7 +138,7 @@ public class JazzSCM extends SCM {
 			result = PollingResult.BUILD_NOW;
 		} else {
 			Node node = build.getBuiltOn();
-			workspaceName = workspaceName.replace("${NODE_NAME}", node.getNodeName());
+			workspaceNameDynamic = workspaceName.replace("${NODE_NAME}", node.getNodeName());
 			JazzClient client = getClientInstance(launcher, listener, workspace);
 			try {
 				
@@ -477,7 +478,12 @@ public class JazzSCM extends SCM {
         configuration.setRepositoryLocation(repositoryLocation);
         
 		// Expand environment variables such as NODE_NAME and JOB_NAME to produce the actual workspace name.
-		String workspaceName = this.workspaceName;
+		String workspaceName = null;
+		if (this.workspaceNameDynamic != null) {
+			workspaceName = this.workspaceNameDynamic;
+		} else {
+			workspaceName = this.workspaceName;
+		}
 		if (this.build != null) {
 			final EnvVars environment = build.getEnvironment(listener);
 			workspaceName = environment.expand(workspaceName);

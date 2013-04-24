@@ -230,18 +230,18 @@ public class JazzClient
 			//	what happens if the addition is the only change?
 			//	does accept command change for components/changesets
 			//output.println(compareCmdResults.keySet().size() + " changesets.");
-			boolean componentsChanged = false;
+			/*boolean componentsChanged = false;
 			if (compareCmdResults.containsKey("Added component")) {
 				compareCmdResults.remove("Added component");
 				componentsChanged = true;
-			}
+			}*/
 			//output.println(compareCmdResults.keySet().size() + " changesets AFTER.");
 
 			accept(compareCmdResults.keySet());
 			
-			if (componentsChanged) {
-				load();
-			}
+			//if (componentsChanged) {
+			load();
+			//}
 
             /*for (Map.Entry<String, JazzChangeSet> entry : compareCmdResults.entrySet()) {
                 JazzChangeSet changeSet1 = entry.getValue();

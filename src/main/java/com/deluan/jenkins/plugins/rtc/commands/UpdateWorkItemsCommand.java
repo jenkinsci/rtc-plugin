@@ -21,6 +21,7 @@ public class UpdateWorkItemsCommand extends AbstractCommand {
 
     public ArgumentListBuilder getArguments() {
         ArgumentListBuilder args = new ArgumentListBuilder();
+		args.add(getConfig().getRepositoryLocation());
 		args.add(userName);
 		args.addMasked(password);
 		args.add(workspaceName);
