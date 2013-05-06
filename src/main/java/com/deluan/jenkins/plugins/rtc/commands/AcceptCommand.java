@@ -167,6 +167,7 @@ public class AcceptCommand extends AbstractCommand implements ParseableCommand<M
 					args.add(jazzExecutable);
 					args.add("accept");
 					addRepositoryArgument(args);
+					args.add("--flow-components", "-o", "-v");
 					addLoginArgument(args);
 					args.add("-d", file.getRemote() + getRemoteSeparator() + sFolder);
 					list.add(args);

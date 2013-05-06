@@ -138,7 +138,7 @@ public class CompareCommand extends AbstractCommand implements ParseableCommand<
 						pathString = pathString.substring(0, pathString.length()-1);
 					}
 
-					if ((combinedFileName.equals(pathString) || combinedFileName.startsWith(pathString + "/")) && componentName.equals(componentRule)) {
+					if ((combinedFileName.equals(pathString) || combinedFileName.startsWith(pathString + "/") || pathString.length() == 0) && componentName.equals(componentRule)) {
 						returnVal = true;
 					}
 				}
