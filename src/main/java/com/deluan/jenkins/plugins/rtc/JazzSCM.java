@@ -39,6 +39,7 @@ public class JazzSCM extends SCM {
 
     private String repositoryLocation;
     private String workspaceName;
+	private String workspaceNameDynamic = null;
     private String streamName;
     private String username;
     private Secret password;
@@ -47,6 +48,7 @@ public class JazzSCM extends SCM {
     private Long timeoutValue;
     
     private String loadRules;
+	private boolean loadRulesValid = true;
 	private boolean useUpdate;
     private String commonWorkspaceUNC;
     private String agentsUsingCommonWorkspace;
@@ -70,7 +72,27 @@ public class JazzSCM extends SCM {
         
         this.loadRules = loadRules;
 		this.useUpdate = useUpdate;
-    }	
+		
+    }
+	
+	private boolean validateLoadRules(String loadRules) {
+		boolean validLoadRules = true;
+
+		if (loadRules != null) {
+			String[] aLoadRuleLines = loadRules.split("\n");
+			for (int i = 0; i < aLoadRuleLines.length; i++) {
+				String nextLoadRule = aLoadRuleLines[i];
+				if (!nextLoadRule.contains(":") && nextLoadRule.length() > 2) {
+					validLoadRules = false;
+				}
+				//Might be able to do something bad if ".." is allowed.
+				if (nextLoadRule.contains("..")) {
+					validLoadRules = false;
+				}
+			}
+		}
+		return validLoadRules;
+	}
     
     public String getRepositoryLocation() {
         return repositoryLocation;
@@ -137,17 +159,12 @@ public class JazzSCM extends SCM {
 			result = PollingResult.BUILD_NOW;
 		} else {
 			Node node = build.getBuiltOn();
-			workspaceName = workspaceName.replace("${NODE_NAME}", node.getNodeName());
+			workspaceNameDynamic = workspaceName.replace("${NODE_NAME}", node.getNodeName());
 			JazzClient client = getClientInstance(launcher, listener, workspace);
 			try {
-				
-				//final EnvVars environment = build.getEnvironment(listener);
-				//workspaceName = environment.expand(workspaceName);
-				//configuration.setWorkspaceName(workspaceName);
 				JazzConfiguration configuration = getConfiguration(listener);
 				String wsName = configuration.getWorkspaceName();
 				
-				//workspaceName2 = workspaceName2.replace("${JOB_NAME}", build.getProject().getName());
 				result = (client.hasChanges()) ? PollingResult.SIGNIFICANT : PollingResult.NO_CHANGES;
 			} catch (Exception e) {
 				result = PollingResult.NO_CHANGES;
@@ -160,13 +177,32 @@ public class JazzSCM extends SCM {
     public boolean checkout(AbstractBuild<?, ?> build, Launcher launcher, FilePath workspace, BuildListener listener, File changelogFile) throws IOException, InterruptedException {
 		this.build = build;
 		
-        JazzClient client = getClientInstance(launcher, listener, workspace);
+		//Null this out so that configuration will not use the NODE_NAME from last build
+		workspaceNameDynamic = null;
 		
+		loadRulesValid = validateLoadRules(loadRules);
+		
+		if (!loadRulesValid) {
+			listener.error("Load rules are not valid. Each line should contain a colon separating component and path.");
+			return false;
+		}
+		
+        JazzClient client = getClientInstance(launcher, listener, workspace);
+
+		JazzConfiguration config = getConfiguration(listener);
 		FilePath file = build.getWorkspace();
 		
 		if (!useUpdate) {
 			try {
 				file.act(new CleanWorkspace(file.getRemote()));
+			} catch (Exception e) {
+				e.printStackTrace();
+				listener.error("exception: " + e);
+				listener.error("Caused by: " + e.getCause());
+			}
+		} else {
+			try {
+				file.act(new RemoveOldSandboxes(file.getRemote(), config.getLoadRules()));
 			} catch (Exception e) {
 				e.printStackTrace();
 				listener.error("exception: " + e);
@@ -182,7 +218,6 @@ public class JazzSCM extends SCM {
 		}
 
         // Forces a load of the workspace. If it's already loaded, the scm command will do nothing.
-		JazzConfiguration config = getConfiguration(listener);
 		FilePath path = null;
 		try {
 			path = build.getWorkspace();
@@ -261,6 +296,106 @@ public class JazzSCM extends SCM {
 			FileOutputStream fos = null;
 			try {
 				fos = new FileOutputStream(fileName + File.separator + "error.txt");
+				fos.write(error.getBytes(), 0, error.length());
+				fos.close();
+			} catch (Exception e) {
+				try {
+					if (fos != null) {
+						fos.close();
+					}
+				} catch (Exception ee) {}
+			}
+		}
+		
+		void deleteSubFiles(File f) throws IOException {
+			for (File c : f.listFiles()) {
+				delete(c);
+			}
+		}
+		
+		void delete(File f) throws IOException {
+			if (f.isDirectory()) {
+				for (File c : f.listFiles()) {
+					delete(c);
+				}
+			}
+			if (!f.delete()) throw new FileNotFoundException("Failed to delete file: " + f);
+		}
+	}
+	
+	//This class will delete any RTC sandboxes that are leftover and not compatible with the current sandbox
+	public static class RemoveOldSandboxes implements FilePath.FileCallable<Void>, Serializable {
+		String fileName = null;
+		String loadRules = null;
+		
+		public RemoveOldSandboxes(String fileName, String loadRules) {
+			this.fileName = fileName;
+			this.loadRules = loadRules;
+		}
+		
+		public Void invoke(File f, hudson.remoting.VirtualChannel channel) {
+			//if .metadata doesnt exist at the load rule location then delete everything in that subfolder
+			//check each folder up the tree for .metadata. if you find it delete it
+			String[] aLoadRuleLines = loadRules.split("\n");
+			for (int i = 0; i < aLoadRuleLines.length; i++) {
+				String[] aLoadRuleParts = aLoadRuleLines[i].split(":");
+				
+				//Clean up load rule syntax
+				if(aLoadRuleParts[1].startsWith("/")) {
+					aLoadRuleParts[1] = aLoadRuleParts[1].substring(1, aLoadRuleParts[1].length());
+				}
+				if (File.separator.equals("\\")) {
+					aLoadRuleParts[1] = aLoadRuleParts[1].replace('/', '\\');
+				} else {
+					aLoadRuleParts[1] = aLoadRuleParts[1].replace('\\', '/');
+				}
+				
+				//Check if the sandbox is already in the right place
+				File loadRuleMetaDataFile = new File(f.getAbsolutePath() + File.separator + aLoadRuleParts[1] + File.separator + ".metadata");
+				if (!loadRuleMetaDataFile.exists()) {
+					//Delete everything in this folder
+					//printError(fileName, "Delete everything in " + f.getAbsolutePath() + File.separator + aLoadRuleParts[1] + " to make room for new sandbox.\n");
+					try {
+						deleteSubFiles(new File(f.getAbsolutePath() + File.separator + aLoadRuleParts[1]));
+					} catch (Exception e) {
+						printError(fileName, e.toString());
+					}
+
+					String parentFolder = aLoadRuleParts[1];
+					String fileSeparator = null;
+					if (File.separator.equals("\\")) {
+						//If the separator is a backslash we need to set this to 4 backslashes before it is sent into the split function
+						fileSeparator = "\\\\";
+					} else {
+						fileSeparator = "/";
+					}
+					String[] loadRuleFolders = parentFolder.split(fileSeparator);
+					String currentFolderToCheck = "";
+					for (int j = 0; j < loadRuleFolders.length; j++) {
+						if (loadRuleFolders[j].length() > 0) {
+							currentFolderToCheck += loadRuleFolders[j] + File.separator;
+							//printError(fileName, "Looking at " + f.getAbsolutePath() + File.separator + currentFolderToCheck + ".metadata" + "\n");
+							File scanForMetaDataFile = new File(f.getAbsolutePath() + File.separator + currentFolderToCheck + ".metadata");
+							if (scanForMetaDataFile.exists()) {
+								//printError(fileName, "Delete everything in " + f.getAbsolutePath() + File.separator + currentFolderToCheck + ".\n");
+								try {
+									deleteSubFiles(new File(f.getAbsolutePath() + File.separator + currentFolderToCheck));
+								} catch (Exception e) {
+									printError(fileName, e.toString());
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			return null;
+		}
+		
+		private void printError(String fileName, String error) {
+			FileOutputStream fos = null;
+			try {
+				fos = new FileOutputStream(fileName + File.separator + "error.txt", true);
 				fos.write(error.getBytes(), 0, error.length());
 				fos.close();
 			} catch (Exception e) {
@@ -477,7 +612,12 @@ public class JazzSCM extends SCM {
         configuration.setRepositoryLocation(repositoryLocation);
         
 		// Expand environment variables such as NODE_NAME and JOB_NAME to produce the actual workspace name.
-		String workspaceName = this.workspaceName;
+		String workspaceName = null;
+		if (this.workspaceNameDynamic != null) {
+			workspaceName = this.workspaceNameDynamic;
+		} else {
+			workspaceName = this.workspaceName;
+		}
 		if (this.build != null) {
 			final EnvVars environment = build.getEnvironment(listener);
 			workspaceName = environment.expand(workspaceName);
